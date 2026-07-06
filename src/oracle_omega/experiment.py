@@ -3,7 +3,7 @@ from __future__ import annotations
 import hashlib
 import json
 import re
-from datetime import UTC, datetime
+from datetime import datetime, timezone
 from pathlib import Path
 
 from pydantic import BaseModel, Field
@@ -79,6 +79,10 @@ def write_json(path: Path, payload: object) -> None:
 def write_text(path: Path, text: str) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
     path.write_text(text, encoding="utf-8")
+
+
+def utc_timestamp() -> str:
+    return datetime.now(timezone.utc).replace(microsecond=0).isoformat().replace("+00:00", "Z")
 
 
 def relative_artifact(path: Path, root: Path) -> str:
@@ -161,7 +165,7 @@ def run_experiment(
     evidence = review(scenario, rules)
     replay = build_replay_bundle(scenario, evidence)
 
-    created = datetime.now(UTC).replace(microsecond=0).isoformat().replace("+00:00", "Z")
+    created = utc_timestamp()
     run_id = experiment_id or f"{slugify(scenario.id)}-{short_hash(scenario_hash, rules_hash, created)}"
     experiment_dir = root / run_id
 
