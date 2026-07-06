@@ -13,6 +13,7 @@ from src.oracle_omega.scenario_file import read_scenario
 ROOT = Path(__file__).resolve().parents[1]
 ITEMS = ROOT / "oracle" / "rules" / "starter_rules.yaml"
 PASS_CASE = ROOT / "oracle" / "scenarios" / "example_path_pass.yaml"
+FRAGILE_CASE = ROOT / "oracle" / "scenarios" / "close_approach" / "fragile_corridor_pass.yaml"
 REVIEW_CASE = ROOT / "oracle" / "scenarios" / "example_corridor_speed_review.yaml"
 
 
@@ -39,7 +40,19 @@ def test_monte_carlo_summary_counts_all_samples():
     assert sum(summary.decision_counts.values()) == 20
 
 
-def test_worst_case_stress_search_can_find_failure_for_near_boundary_path():
+def test_fragile_nominal_case_has_nonzero_uncertainty_risk():
+    scenario = read_scenario(FRAGILE_CASE)
+    rules = read_rule_file(ITEMS)
+
+    report = build_robustness_report(scenario, rules, sample_override=40)
+
+    assert report.nominal_decision == Decision.ALLOW
+    assert report.monte_carlo.fail_count > 0
+    assert report.monte_carlo.failure_probability > 0.0
+    assert report.monte_carlo.most_common_failure == "PATH-CORRIDOR-001"
+
+
+def test_worst_case_stress_search_can_find_failure_for_allowed_path():
     scenario = read_scenario(PASS_CASE)
     rules = read_rule_file(ITEMS)
 
@@ -50,6 +63,17 @@ def test_worst_case_stress_search_can_find_failure_for_near_boundary_path():
     assert result.perturbation_norm is not None
     assert result.evidence is not None
     assert result.evidence.decision != Decision.ALLOW
+
+
+def test_stress_search_skips_already_failing_nominal_case():
+    scenario = read_scenario(REVIEW_CASE)
+    rules = read_rule_file(ITEMS)
+
+    result = find_worst_case_stress(scenario, rules)
+
+    assert result.found is False
+    assert result.description is not None
+    assert "already requires review" in result.description
 
 
 def test_robustness_report_contains_nominal_and_uncertainty_results():
@@ -64,3 +88,18 @@ def test_robustness_report_contains_nominal_and_uncertainty_results():
     assert report.monte_carlo.sample_count == 15
     assert report.monte_carlo.pass_count + report.monte_carlo.fail_count == 15
     assert report.monte_carlo.failure_probability >= 0.0
+    assert report.repair_comparison is None
+
+
+def test_robustness_report_can_compare_repaired_path_risk():
+    scenario = read_scenario(REVIEW_CASE)
+    rules = read_rule_file(ITEMS)
+
+    report = build_robustness_report(scenario, rules, sample_override=20, compare_repair=True)
+
+    assert report.repair_comparison is not None
+    assert report.repair_comparison.repair_available is True
+    assert report.repair_comparison.original_failure_probability == 1.0
+    assert report.repair_comparison.repaired_failure_probability is not None
+    assert report.repair_comparison.repaired_failure_probability <= report.repair_comparison.original_failure_probability
+    assert "PATH-SPEED-001" in report.repair_comparison.fixed_rules
