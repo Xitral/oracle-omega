@@ -3,6 +3,12 @@ name: Corridor and speed review demo
 family: close_approach
 parameters:
   description: A path that remains outside the central volume but drifts outside the corridor and moves too quickly.
+  uncertainty:
+    position_sigma: {x: 0.02, y: 0.18, z: 0.05}
+    timing_sigma: 0.2
+    attitude_sigma_deg: {x: 0.4, y: 0.4, z: 0.2}
+    samples: 100
+    seed: 7
 planned_path:
   - t: 0
     position: {x: 10.0, y: 0.0, z: 0.0}
