@@ -5,13 +5,14 @@ from collections import Counter
 from enum import Enum
 from typing import Any
 
-from src.oracle_omega.buffered_repair import build_buffered_repair_candidate
+from src.oracle_omega.buffered_repair import BUFFERED_REPAIR_STRATEGY, build_buffered_repair_candidate
 from src.oracle_omega.core.models import (
     AdversarialCase,
     Decision,
     EvidenceCard,
     MonteCarloSummary,
     PathSample,
+    RepairCandidate,
     RepairRobustnessComparison,
     RobustnessReport,
     Scenario,
@@ -21,6 +22,8 @@ from src.oracle_omega.core.models import (
 from src.oracle_omega.reviewer import review
 
 SEVERITY_RANK = {"nominal": 0, "review": 1, "critical": 2}
+REPAIR_TARGET_FAILURE_PROBABILITY = 0.01
+ADAPTIVE_SIGMA_BUFFERS = (3.0, 4.0, 5.0, 6.0)
 STRESS_DIRECTIONS = (
     {"x": 0.0, "y": 1.0, "z": 0.0},
     {"x": 0.0, "y": -1.0, "z": 0.0},
@@ -243,6 +246,34 @@ def find_worst_case_stress(
     )
 
 
+def adaptive_repair_candidates(
+    scenario: Scenario,
+    rule_items: list[dict],
+    nominal: EvidenceCard,
+    config: UncertaintyConfig,
+) -> list[tuple[float, RepairCandidate, MonteCarloSummary]]:
+    candidates = []
+    for sigma_buffer in ADAPTIVE_SIGMA_BUFFERS:
+        repair = build_buffered_repair_candidate(scenario, rule_items, nominal, sigma_buffer=sigma_buffer)
+        if not repair.available or repair.repaired_scenario is None:
+            continue
+        summary = run_monte_carlo(repair.repaired_scenario, rule_items, config)
+        candidates.append((sigma_buffer, repair, summary))
+    return candidates
+
+
+def select_repair_candidate(
+    candidates: list[tuple[float, RepairCandidate, MonteCarloSummary]],
+    target_failure_probability: float = REPAIR_TARGET_FAILURE_PROBABILITY,
+) -> tuple[float, RepairCandidate, MonteCarloSummary] | None:
+    if not candidates:
+        return None
+    for candidate in candidates:
+        if candidate[2].failure_probability <= target_failure_probability:
+            return candidate
+    return min(candidates, key=lambda item: item[2].failure_probability)
+
+
 def compare_repaired_robustness(
     scenario: Scenario,
     rule_items: list[dict],
@@ -250,15 +281,19 @@ def compare_repaired_robustness(
     original_summary: MonteCarloSummary,
 ) -> RepairRobustnessComparison:
     nominal = review(scenario, rule_items)
-    repair = build_buffered_repair_candidate(scenario, rule_items, nominal)
-    if not repair.available or repair.repaired_scenario is None:
+    candidates = adaptive_repair_candidates(scenario, rule_items, nominal, config)
+    selected = select_repair_candidate(candidates)
+    if selected is None:
         return RepairRobustnessComparison(
             repair_available=False,
             original_failure_probability=original_summary.failure_probability,
             original_fail_count=original_summary.fail_count,
+            repair_strategy=BUFFERED_REPAIR_STRATEGY,
+            target_failure_probability=REPAIR_TARGET_FAILURE_PROBABILITY,
         )
 
-    repaired_summary = run_monte_carlo(repair.repaired_scenario, rule_items, config)
+    sigma_buffer, repair, repaired_summary = selected
+    candidate_probabilities = {f"{candidate[0]:.1f}": candidate[2].failure_probability for candidate in candidates}
     absolute = original_summary.failure_probability - repaired_summary.failure_probability
     relative = absolute / original_summary.failure_probability if original_summary.failure_probability > 0 else 0.0
     return RepairRobustnessComparison(
@@ -271,6 +306,10 @@ def compare_repaired_robustness(
         repaired_fail_count=repaired_summary.fail_count,
         fixed_rules=repair.fixed_rules,
         remaining_failures=repair.remaining_failures,
+        repair_strategy=repair.strategy,
+        target_failure_probability=REPAIR_TARGET_FAILURE_PROBABILITY,
+        selected_sigma_buffer=sigma_buffer,
+        candidate_failure_probabilities=candidate_probabilities,
     )
 
 
