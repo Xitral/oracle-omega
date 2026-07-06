@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from collections import Counter
+from enum import Enum
 from pathlib import Path
 from typing import Any
 
@@ -84,11 +85,17 @@ def run_suite(suite_root: str | Path, rule_path: str | Path) -> SuiteSummary:
     )
 
 
+def normalized_counter_key(value: Any) -> str:
+    if isinstance(value, Enum):
+        return str(value.value)
+    return str(value)
+
+
 def count_field(cases: list[SuiteCaseResult], field_name: str) -> dict[str, int]:
     counter: Counter[str] = Counter()
     for case in cases:
         value: Any = getattr(case, field_name)
         if value is None:
             continue
-        counter[str(value)] += 1
+        counter[normalized_counter_key(value)] += 1
     return dict(sorted(counter.items()))
