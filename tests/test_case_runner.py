@@ -24,6 +24,11 @@ def test_close_approach_pass_uses_close_approach_checks():
     evidence = review(read_scenario(CASE_A), read_rule_file(ITEMS))
 
     assert evidence.decision == Decision.ALLOW
+    assert evidence.scenario_family == "close_approach"
+    assert evidence.checked_count == 3
+    assert evidence.failed_count == 0
+    assert evidence.primary_rule_id is None
+    assert evidence.primary_violation_time is None
     assert result_ids(evidence) == {
         "APPROACH-CLEARANCE-001",
         "PATH-CORRIDOR-001",
@@ -36,6 +41,11 @@ def test_surface_landing_review_uses_surface_checks():
     evidence = review(read_scenario(CASE_B), read_rule_file(ITEMS))
 
     assert evidence.decision == Decision.REQUIRE_REVIEW
+    assert evidence.scenario_family == "surface_landing"
+    assert evidence.checked_count == 3
+    assert evidence.failed_count == 2
+    assert evidence.primary_rule_id == "APPROACH-CLEARANCE-001"
+    assert evidence.primary_violation_time == 20.0
     assert result_ids(evidence) == {
         "APPROACH-CLEARANCE-001",
         "LANDING-TILT-001",
@@ -48,6 +58,11 @@ def test_close_approach_review_flags_corridor_and_speed():
     evidence = review(read_scenario(CASE_C), read_rule_file(ITEMS))
 
     assert evidence.decision == Decision.REQUIRE_REVIEW
+    assert evidence.scenario_family == "close_approach"
+    assert evidence.checked_count == 3
+    assert evidence.failed_count == 2
+    assert evidence.primary_rule_id == "PATH-SPEED-001"
+    assert evidence.primary_violation_time == 5.0
     assert result_ids(evidence) == {
         "APPROACH-CLEARANCE-001",
         "PATH-CORRIDOR-001",
