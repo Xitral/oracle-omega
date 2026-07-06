@@ -38,6 +38,11 @@ def lateral_sigma(scenario: Scenario) -> float:
     return math.sqrt(sigma.y**2 + sigma.z**2)
 
 
+def attitude_sigma(scenario: Scenario) -> float:
+    sigma = sigma_vec(scenario, "attitude_sigma_deg")
+    return max(abs(sigma.x), abs(sigma.y))
+
+
 def time_sigma(scenario: Scenario) -> float:
     return float(raw_uncertainty(scenario).get("timing_sigma", 0.0))
 
@@ -62,6 +67,10 @@ def speed_target(max_speed: float) -> float:
 
 def clearance_target(radius: float, sigma: float) -> float:
     return radius + radius * 0.1 + SIGMA_BUFFER * sigma
+
+
+def tilt_target(max_deg: float, sigma: float) -> float:
+    return min(max_deg * 0.85, max(0.0, max_deg - SIGMA_BUFFER * sigma))
 
 
 def clamp_corridor_with_buffer(scenario: Scenario, max_offset: float, sigma: float) -> None:
@@ -90,6 +99,13 @@ def push_clearance_with_buffer(scenario: Scenario, center: Vec3, radius: float, 
         sample.position.x = center.x + (sample.position.x - center.x) * scale
         sample.position.y = center.y + (sample.position.y - center.y) * scale
         sample.position.z = center.z + (sample.position.z - center.z) * scale
+
+
+def clamp_tilt_with_buffer(scenario: Scenario, max_deg: float, sigma: float) -> None:
+    target = tilt_target(max_deg, sigma)
+    for sample in scenario.planned_path:
+        sample.attitude_deg.x = max(-target, min(target, sample.attitude_deg.x))
+        sample.attitude_deg.y = max(-target, min(target, sample.attitude_deg.y))
 
 
 def retime_speed_with_buffer(scenario: Scenario, max_speed: float, sigma_t: float) -> None:
@@ -123,6 +139,10 @@ def apply_buffered_repair(scenario: Scenario, rule_items: list[dict]) -> Scenari
     corridor_rule = first_rule(rules, "corridor_limit")
     if corridor_rule is not None:
         clamp_corridor_with_buffer(repaired, float(corridor_rule["max_offset"]), sigma)
+
+    tilt_rule = first_rule(rules, "tilt_limit")
+    if tilt_rule is not None:
+        clamp_tilt_with_buffer(repaired, float(tilt_rule["max_deg"]), attitude_sigma(scenario))
 
     speed_rule = first_rule(rules, "speed_limit")
     if speed_rule is not None:
