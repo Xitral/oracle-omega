@@ -91,15 +91,17 @@ def test_robustness_report_contains_nominal_and_uncertainty_results():
     assert report.repair_comparison is None
 
 
-def test_robustness_report_can_compare_repaired_path_risk():
+def test_robustness_report_uses_buffered_repair_for_risk_reduction():
     scenario = read_scenario(REVIEW_CASE)
     rules = read_rule_file(ITEMS)
 
-    report = build_robustness_report(scenario, rules, sample_override=20, compare_repair=True)
+    report = build_robustness_report(scenario, rules, sample_override=40, compare_repair=True)
 
     assert report.repair_comparison is not None
     assert report.repair_comparison.repair_available is True
     assert report.repair_comparison.original_failure_probability == 1.0
     assert report.repair_comparison.repaired_failure_probability is not None
-    assert report.repair_comparison.repaired_failure_probability <= report.repair_comparison.original_failure_probability
+    assert report.repair_comparison.repaired_failure_probability <= 0.25
+    assert report.repair_comparison.absolute_risk_reduction is not None
+    assert report.repair_comparison.absolute_risk_reduction >= 0.75
     assert "PATH-SPEED-001" in report.repair_comparison.fixed_rules
