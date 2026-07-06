@@ -20,6 +20,7 @@ def markers_at_time(evidence: EvidenceCard, t: float) -> list[ReplayMarker]:
                     rule_id=result.rule_id,
                     t=t,
                     label=result.reason,
+                    recommendation=result.recommendation,
                 )
             )
     return markers
@@ -49,5 +50,6 @@ def build_replay_bundle(scenario: Scenario, evidence: EvidenceCard) -> ReplayBun
         decision=evidence.decision,
         primary_rule_id=evidence.primary_rule_id,
         primary_violation_time=evidence.primary_violation_time,
+        primary_recommendation=evidence.primary_recommendation,
         frames=frames,
     )
