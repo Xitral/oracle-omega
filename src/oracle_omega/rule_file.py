@@ -13,6 +13,7 @@ def read_rule_file(path: str | Path) -> list[dict[str, Any]]:
             "center": {"x": 0.0, "y": 0.0, "z": 0.0},
             "radius": 2.0,
             "reason": "Central radius check.",
+            "recommendation": "Increase clearance from the protected volume before continuing the scenario.",
         },
         {
             "id": "LANDING-TILT-001",
@@ -20,6 +21,7 @@ def read_rule_file(path: str | Path) -> list[dict[str, Any]]:
             "families": ["surface_landing"],
             "max_deg": 8.0,
             "reason": "Tilt check.",
+            "recommendation": "Reduce roll or pitch before accepting the final surface-contact segment.",
         },
         {
             "id": "PATH-CORRIDOR-001",
@@ -27,6 +29,7 @@ def read_rule_file(path: str | Path) -> list[dict[str, Any]]:
             "families": ["close_approach"],
             "max_offset": 2.5,
             "reason": "Path corridor offset check.",
+            "recommendation": "Re-center the path inside the approach corridor before continuing.",
         },
         {
             "id": "PATH-SPEED-001",
@@ -34,5 +37,6 @@ def read_rule_file(path: str | Path) -> list[dict[str, Any]]:
             "families": ["close_approach", "surface_landing"],
             "max_speed": 0.65,
             "reason": "Path segment speed check.",
+            "recommendation": "Reduce segment speed and regenerate the path preview before continuing.",
         },
     ]
