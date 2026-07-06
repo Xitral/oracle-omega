@@ -47,7 +47,7 @@ def build_benchmark_claims(report: BenchmarkAnalyticsReport) -> BenchmarkClaimsR
             claim_id="repair-success-rate",
             title="Buffered repair success rate",
             statement=(
-                "Buffered repair met the repaired-risk threshold in "
+                "Buffered repair met the configured repaired-risk threshold in "
                 f"{aggregate.repair_success_count} of {aggregate.repair_comparison_count} benchmark repair comparisons."
             ),
             scope="Benchmark-tagged experiments only.",
@@ -57,7 +57,7 @@ def build_benchmark_claims(report: BenchmarkAnalyticsReport) -> BenchmarkClaimsR
                 "repair_success_rate": aggregate.repair_success_rate,
                 "repair_success_threshold": report.repair_success_threshold,
             },
-            caveat="Success means repaired failure probability is at or below the configured threshold, not proof of universal correctness.",
+            caveat="Threshold results are scoped to this benchmark run.",
         )
     )
 
@@ -67,13 +67,14 @@ def build_benchmark_claims(report: BenchmarkAnalyticsReport) -> BenchmarkClaimsR
             title="Mean robustness risk reduction",
             statement=(
                 "Across benchmark repair comparisons, mean failure probability decreased from "
-                f"{metric_text(aggregate.mean_original_failure_probability)} to "
+                f"{metric_text(aggregate.mean_repair_original_failure_probability)} to "
                 f"{metric_text(aggregate.mean_repaired_failure_probability)}, with mean absolute risk reduction "
                 f"{metric_text(aggregate.mean_absolute_risk_reduction)}."
             ),
             scope="Benchmark-tagged repair comparisons with robustness measurements.",
             evidence={
-                "mean_original_failure_probability": aggregate.mean_original_failure_probability,
+                "mean_repair_original_failure_probability": aggregate.mean_repair_original_failure_probability,
+                "median_repair_original_failure_probability": aggregate.median_repair_original_failure_probability,
                 "mean_repaired_failure_probability": aggregate.mean_repaired_failure_probability,
                 "mean_absolute_risk_reduction": aggregate.mean_absolute_risk_reduction,
                 "median_absolute_risk_reduction": aggregate.median_absolute_risk_reduction,
@@ -88,7 +89,7 @@ def build_benchmark_claims(report: BenchmarkAnalyticsReport) -> BenchmarkClaimsR
                 claim_id="fragile-nominal-detection",
                 title="Fragile nominal scenario detection",
                 statement=(
-                    "ORACLE-Omega identified nominally allowed benchmark scenarios that still failed under uncertainty; "
+                    "ORACLE-Omega identified nominally allowed benchmark scenarios with nonzero uncertainty risk; "
                     f"fragile nominal count was {aggregate.fragile_nominal_count}."
                 ),
                 scope="Benchmark-tagged nominal scenarios with robustness evaluation.",
@@ -96,7 +97,7 @@ def build_benchmark_claims(report: BenchmarkAnalyticsReport) -> BenchmarkClaimsR
                     "fragile_nominal_count": aggregate.fragile_nominal_count,
                     "robust_nominal_count": aggregate.robust_nominal_count,
                 },
-                caveat="A fragile nominal case is defined by nonzero sampled uncertainty failure probability.",
+                caveat="A fragile nominal case is defined by nonzero sampled uncertainty risk.",
             )
         )
 
@@ -106,15 +107,13 @@ def build_benchmark_claims(report: BenchmarkAnalyticsReport) -> BenchmarkClaimsR
             BenchmarkClaim(
                 claim_id="dominant-failure-mode",
                 title="Dominant uncertainty failure mode",
-                statement=(
-                    f"The most frequent benchmark failure mode was {top_failure}, observed in {top_count} indexed cases."
-                ),
+                statement=f"The most frequent benchmark failure mode was {top_failure}, observed in {top_count} indexed cases.",
                 scope="Benchmark-tagged experiments with a recorded most-common failure mode.",
                 evidence={
                     "top_failure_mode": top_failure,
                     "top_failure_mode_count": top_count,
                 },
-                caveat="Failure-mode counts summarize most-common sampled failures, not every individual sample failure.",
+                caveat="Counts summarize the recorded most-common failure mode per experiment.",
             )
         )
 
