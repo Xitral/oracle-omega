@@ -17,7 +17,7 @@
       }
       main {
         display: grid;
-        grid-template-columns: minmax(0, 1.7fr) minmax(380px, 0.8fr);
+        grid-template-columns: minmax(0, 1.7fr) minmax(400px, 0.8fr);
         gap: 24px;
         padding: 32px;
       }
@@ -30,14 +30,14 @@
         box-shadow: 0 24px 80px rgba(0, 0, 0, 0.35);
       }
       .viewport {
-        min-height: 680px;
+        min-height: 720px;
         padding: 0;
         position: relative;
         overflow: hidden;
       }
       #scene-root {
-        min-height: 680px;
-        height: 72vh;
+        min-height: 720px;
+        height: 76vh;
       }
       #hud {
         position: absolute;
@@ -81,7 +81,8 @@
         color: #ffb86b;
         font-weight: 700;
       }
-      .recommendation {
+      .recommendation,
+      .repair-good {
         color: #b9fbc0;
         font-weight: 700;
       }
@@ -138,6 +139,7 @@
       .legend .review::before { background: #ffd166; }
       .legend .critical::before { background: #ff6b6b; }
       .legend .primary::before { background: #ffb86b; }
+      .legend .ghost::before { background: #57f287; }
     </style>
     <script type="importmap">
       {
@@ -160,12 +162,12 @@
       <aside class="panel">
         <span class="badge">SIMULATION ONLY</span>
         <h1>ORACLE-Omega</h1>
-        <p>3D replay viewer for spatial assurance evidence.</p>
+        <p>3D replay viewer for spatial assurance evidence and counterfactual repair.</p>
 
         <section class="card">
-          <h2>Load replay JSON</h2>
+          <h2>Load replay or repair JSON</h2>
           <input id="file-input" type="file" accept="application/json,.json" />
-          <p><code>python -m src.oracle_omega.cli oracle/scenarios/example_corridor_speed_review.yaml --replay-out data/replays/corridor-speed-replay.json</code></p>
+          <p><code>python -m src.oracle_omega.cli oracle/scenarios/example_corridor_speed_review.yaml --repair-out data/repairs/corridor-speed-repair.json</code></p>
         </section>
 
         <section class="card">
@@ -174,6 +176,11 @@
           <p id="severity" class="severity"></p>
           <p id="primary"></p>
           <p id="primary-recommendation" class="recommendation"></p>
+        </section>
+
+        <section class="card">
+          <h2>Counterfactual Repair</h2>
+          <pre id="repair-summary">Load a repair bundle to inspect ghost-path improvement.</pre>
         </section>
 
         <section class="card">
@@ -188,10 +195,11 @@
         <section class="card">
           <h2>Legend</h2>
           <div class="legend">
-            <span class="nominal">Nominal frame</span>
+            <span class="nominal">Original nominal frame</span>
             <span class="review">Review marker</span>
             <span class="critical">Critical marker</span>
             <span class="primary">Primary violation focus</span>
+            <span class="ghost">Repaired ghost path</span>
           </div>
         </section>
 
@@ -206,7 +214,7 @@
       import * as THREE from "three";
       import { OrbitControls } from "three/addons/controls/OrbitControls.js";
 
-      const defaultReplay = {
+      const defaultOriginalReplay = {
         scenario_id: "example-corridor-speed-review",
         scenario_family: "close_approach",
         decision: "REQUIRE_REVIEW",
@@ -220,6 +228,41 @@
           { t: 10, position: { x: 3.5, y: 3.6, z: 0 }, attitude_deg: { x: 0, y: 0, z: 0 }, active_markers: [{ rule_id: "PATH-CORRIDOR-001", t: 10, label: "Path corridor offset check.", severity: "critical", recommendation: "Re-center the path inside the approach corridor before continuing.", safety_margin: -1.1, normalized_margin: -0.44000000000000006 }], is_primary_violation_frame: false },
           { t: 15, position: { x: 2.6, y: 3.1, z: 0 }, attitude_deg: { x: 0, y: 0, z: 0 }, active_markers: [], is_primary_violation_frame: false }
         ]
+      };
+
+      const defaultRepairedReplay = {
+        scenario_id: "example-corridor-speed-review-repair",
+        scenario_family: "close_approach",
+        decision: "ALLOW",
+        highest_severity: "nominal",
+        primary_rule_id: null,
+        primary_violation_time: null,
+        primary_recommendation: null,
+        frames: [
+          { t: 0, position: { x: 10, y: 0, z: 0 }, attitude_deg: { x: 0, y: 0, z: 0 }, active_markers: [], is_primary_violation_frame: false },
+          { t: 11.4, position: { x: 7, y: 2.4, z: 0 }, attitude_deg: { x: 0, y: 0, z: 0 }, active_markers: [], is_primary_violation_frame: false },
+          { t: 17.1, position: { x: 3.5, y: 2.4, z: 0 }, attitude_deg: { x: 0, y: 0, z: 0 }, active_markers: [], is_primary_violation_frame: false },
+          { t: 18.9, position: { x: 2.6, y: 2.4, z: 0 }, attitude_deg: { x: 0, y: 0, z: 0 }, active_markers: [], is_primary_violation_frame: false }
+        ]
+      };
+
+      const defaultPayload = {
+        scenario_id: "example-corridor-speed-review",
+        strategy: "counterfactual_minimal_path_change_v1",
+        repair_candidate: {
+          available: true,
+          strategy: "counterfactual_minimal_path_change_v1",
+          fixed_rules: ["PATH-CORRIDOR-001", "PATH-SPEED-001"],
+          remaining_failures: [],
+          original_failed_count: 2,
+          repaired_failed_count: 0,
+          original_highest_severity: "critical",
+          repaired_highest_severity: "nominal",
+          path_delta_score: 0.42,
+          modified_frame_count: 3
+        },
+        original_replay: defaultOriginalReplay,
+        repaired_replay: defaultRepairedReplay
       };
 
       const root = document.getElementById("scene-root");
@@ -259,7 +302,16 @@
       vehicle.rotation.z = -Math.PI / 2;
       scene.add(vehicle);
 
-      let currentReplay = defaultReplay;
+      const ghostVehicle = new THREE.Mesh(
+        new THREE.ConeGeometry(0.2, 0.72, 24),
+        new THREE.MeshStandardMaterial({ color: 0x57f287, emissive: 0x123820, metalness: 0.25, roughness: 0.35, transparent: true, opacity: 0.82 })
+      );
+      ghostVehicle.rotation.z = -Math.PI / 2;
+      scene.add(ghostVehicle);
+
+      let currentReplay = defaultOriginalReplay;
+      let currentRepairedReplay = defaultRepairedReplay;
+      let currentRepair = defaultPayload.repair_candidate;
       let currentFrameIndex = 0;
       let markerMeshes = [];
 
@@ -277,8 +329,8 @@
         });
       }
 
-      function lineMaterial(color) {
-        return new THREE.LineBasicMaterial({ color, transparent: true, opacity: 0.95 });
+      function lineMaterial(color, opacity = 0.95) {
+        return new THREE.LineBasicMaterial({ color, transparent: true, opacity });
       }
 
       function markerColor(frame) {
@@ -326,12 +378,24 @@
         replayGroup.add(corridorWire);
       }
 
-      function addPath(frames) {
+      function addPath(frames, color, name, opacity = 0.95) {
         const points = frames.map((frame) => toVector(frame.position));
         const geometry = new THREE.BufferGeometry().setFromPoints(points);
-        const pathLine = new THREE.Line(geometry, lineMaterial(0x7fa8ff));
-        pathLine.name = "replay-path-line";
+        const pathLine = new THREE.Line(geometry, lineMaterial(color, opacity));
+        pathLine.name = name;
         replayGroup.add(pathLine);
+      }
+
+      function addGhostMarkers(frames) {
+        frames.forEach((frame) => {
+          const mesh = new THREE.Mesh(
+            new THREE.SphereGeometry(0.09, 20, 12),
+            material(0x57f287, 0.78)
+          );
+          mesh.position.copy(toVector(frame.position));
+          mesh.name = "ghost-repair-marker";
+          replayGroup.add(mesh);
+        });
       }
 
       function addFrameMarkers(frames) {
@@ -350,16 +414,41 @@
         });
       }
 
-      function renderReplay(replay) {
-        currentReplay = replay;
+      function normalizePayload(payload) {
+        if (payload.original_replay) {
+          return {
+            original: payload.original_replay,
+            repaired: payload.repaired_replay || null,
+            repair: payload.repair_candidate || null,
+          };
+        }
+        return { original: payload, repaired: null, repair: null };
+      }
+
+      function renderPayload(payload) {
+        const normalized = normalizePayload(payload);
+        currentReplay = normalized.original;
+        currentRepairedReplay = normalized.repaired;
+        currentRepair = normalized.repair;
         currentFrameIndex = 0;
+
         clearReplayGroup();
         addConstraintGeometry();
-        addPath(replay.frames);
-        addFrameMarkers(replay.frames);
-        configureTimeline(replay.frames);
-        updateDecisionPanel(replay);
-        const primaryIndex = replay.frames.findIndex((frame) => frame.is_primary_violation_frame);
+        addPath(currentReplay.frames, 0x7fa8ff, "replay-path-line", 0.95);
+        addFrameMarkers(currentReplay.frames);
+
+        if (currentRepairedReplay) {
+          addPath(currentRepairedReplay.frames, 0x57f287, "ghost-repair-path-line", 0.9);
+          addGhostMarkers(currentRepairedReplay.frames);
+          ghostVehicle.visible = true;
+        } else {
+          ghostVehicle.visible = false;
+        }
+
+        configureTimeline(currentReplay.frames);
+        updateDecisionPanel(currentReplay);
+        updateRepairPanel(currentRepair);
+        const primaryIndex = currentReplay.frames.findIndex((frame) => frame.is_primary_violation_frame);
         focusFrame(primaryIndex >= 0 ? primaryIndex : 0);
       }
 
@@ -379,11 +468,29 @@
         document.getElementById("primary-recommendation").textContent = replay.primary_recommendation || "";
       }
 
-      function showFrameDetails(frame) {
+      function updateRepairPanel(repair) {
+        if (!repair) {
+          document.getElementById("repair-summary").textContent = "No counterfactual repair bundle loaded.";
+          return;
+        }
+        document.getElementById("repair-summary").textContent = JSON.stringify({
+          available: repair.available,
+          strategy: repair.strategy,
+          fixed_rules: repair.fixed_rules,
+          remaining_failures: repair.remaining_failures,
+          failed_count_change: `${repair.original_failed_count} → ${repair.repaired_failed_count}`,
+          severity_change: `${repair.original_highest_severity} → ${repair.repaired_highest_severity}`,
+          path_delta_score: repair.path_delta_score,
+          modified_frame_count: repair.modified_frame_count,
+        }, null, 2);
+      }
+
+      function showFrameDetails(frame, repairedFrame) {
         const markers = frame.active_markers || [];
         const recommendation = markers.map((marker) => marker.recommendation).filter(Boolean).join("\n");
         const detail = {
-          ...frame,
+          original_frame: frame,
+          repaired_ghost_frame: repairedFrame || null,
           recommendation: recommendation || null
         };
         document.getElementById("frame-details").textContent = JSON.stringify(detail, null, 2);
@@ -400,10 +507,26 @@
           THREE.MathUtils.degToRad(frame.attitude_deg.z),
           THREE.MathUtils.degToRad(frame.attitude_deg.y) - Math.PI / 2
         );
+
+        const repairedFrame = currentRepairedReplay && currentRepairedReplay.frames[index]
+          ? currentRepairedReplay.frames[index]
+          : null;
+        if (repairedFrame) {
+          ghostVehicle.visible = true;
+          ghostVehicle.position.copy(toVector(repairedFrame.position));
+          ghostVehicle.rotation.set(
+            THREE.MathUtils.degToRad(repairedFrame.attitude_deg.x),
+            THREE.MathUtils.degToRad(repairedFrame.attitude_deg.z),
+            THREE.MathUtils.degToRad(repairedFrame.attitude_deg.y) - Math.PI / 2
+          );
+        } else {
+          ghostVehicle.visible = false;
+        }
+
         controls.target.copy(position);
         document.getElementById("timeline").value = index;
         document.getElementById("timeline-label").textContent = `T+${frame.t}s`;
-        showFrameDetails(frame);
+        showFrameDetails(frame, repairedFrame);
       }
 
       function onResize() {
@@ -435,7 +558,7 @@
         const file = event.target.files[0];
         if (!file) return;
         const text = await file.text();
-        renderReplay(JSON.parse(text));
+        renderPayload(JSON.parse(text));
       });
 
       document.getElementById("focus-primary").addEventListener("click", () => {
@@ -451,7 +574,7 @@
 
       window.addEventListener("resize", onResize);
       onResize();
-      renderReplay(defaultReplay);
+      renderPayload(defaultPayload);
       animate();
     </script>
   </body>
