@@ -1,0 +1,12 @@
+id: close-approach-nominal
+name: Close Approach Nominal
+family: close_approach
+planned_path:
+  - t: 0.0
+    position: {x: 10.0, y: 0.0, z: 0.0}
+  - t: 5.0
+    position: {x: 7.0, y: 0.5, z: 0.0}
+  - t: 10.0
+    position: {x: 4.5, y: 0.7, z: 0.0}
+  - t: 15.0
+    position: {x: 3.0, y: 0.8, z: 0.0}
