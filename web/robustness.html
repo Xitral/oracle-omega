@@ -1,0 +1,409 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>ORACLE-Omega Robustness Theater</title>
+    <style>
+      :root { color-scheme: dark; }
+      body {
+        margin: 0;
+        min-height: 100vh;
+        background: #05070d;
+        color: #f4f7fb;
+        font-family: Arial, sans-serif;
+      }
+      main {
+        display: grid;
+        grid-template-columns: minmax(0, 1.7fr) minmax(420px, 0.8fr);
+        gap: 24px;
+        padding: 32px;
+      }
+      .viewport, .panel, .card {
+        border: 1px solid #233047;
+        border-radius: 18px;
+        background: linear-gradient(180deg, #101827, #070a12);
+        box-shadow: 0 24px 80px rgba(0, 0, 0, 0.35);
+      }
+      .viewport { min-height: 720px; position: relative; overflow: hidden; }
+      #scene-root { min-height: 720px; height: 76vh; }
+      #hud {
+        position: absolute;
+        left: 18px;
+        top: 18px;
+        padding: 12px 14px;
+        border: 1px solid rgba(127, 168, 255, 0.28);
+        border-radius: 14px;
+        background: rgba(5, 7, 13, 0.72);
+      }
+      #hud strong { color: #ffb86b; display: block; margin-bottom: 4px; }
+      .panel { padding: 24px; }
+      .card { margin-top: 16px; padding: 16px; }
+      h1 { margin-top: 0; letter-spacing: 0.08em; }
+      .badge {
+        display: inline-block;
+        padding: 6px 10px;
+        border-radius: 999px;
+        background: #13213a;
+        color: #9fc0ff;
+        font-size: 12px;
+        letter-spacing: 0.08em;
+      }
+      input[type="file"], input[type="range"] { width: 100%; }
+      code { color: #ffb86b; word-break: break-word; }
+      pre {
+        white-space: pre-wrap;
+        word-break: break-word;
+        color: #c6d6ff;
+        max-height: 300px;
+        overflow: auto;
+      }
+      button {
+        border: 1px solid #2d4268;
+        border-radius: 12px;
+        background: #142037;
+        color: #f4f7fb;
+        cursor: pointer;
+        padding: 10px 14px;
+      }
+      .legend { display: grid; gap: 8px; }
+      .legend span::before {
+        content: "";
+        display: inline-block;
+        width: 10px;
+        height: 10px;
+        margin-right: 8px;
+        border-radius: 999px;
+      }
+      .legend .nominal::before { background: #7fa8ff; }
+      .legend .stress::before { background: #ff6b6b; }
+      .legend .repair::before { background: #57f287; }
+      .legend .boundary::before { background: #ffb86b; }
+      .metric { color: #b9fbc0; font-weight: 700; }
+    </style>
+    <script type="importmap">
+      {
+        "imports": {
+          "three": "https://unpkg.com/three@0.160.0/build/three.module.js",
+          "three/addons/": "https://unpkg.com/three@0.160.0/examples/jsm/"
+        }
+      }
+    </script>
+  </head>
+  <body>
+    <main>
+      <section class="viewport">
+        <div id="scene-root" aria-label="ORACLE-Omega robustness theater"></div>
+        <div id="hud">
+          <strong>Robustness Theater</strong>
+          <div>Blue = nominal. Red = stress. Green = buffered repair.</div>
+        </div>
+      </section>
+      <aside class="panel">
+        <span class="badge">SIMULATION ONLY</span>
+        <h1>ORACLE-Omega</h1>
+        <p>3D robustness bundle viewer for uncertainty evidence, stress replay, and buffered repair replay.</p>
+
+        <section class="card">
+          <h2>Load robustness bundle</h2>
+          <input id="file-input" type="file" accept="application/json,.json" />
+          <p><code>python -m src.oracle_omega.robustness_bundle_cli oracle/scenarios/example_corridor_speed_review.yaml --samples 100 --compare-repair --out data/bundles/corridor-speed-repair-bundle.json</code></p>
+        </section>
+
+        <section class="card">
+          <h2>Robustness metrics</h2>
+          <pre id="metrics">Load a robustness visualization bundle.</pre>
+        </section>
+
+        <section class="card">
+          <h2>Timeline</h2>
+          <input id="timeline" type="range" min="0" max="0" value="0" step="1" />
+          <p id="timeline-label">T+0s</p>
+          <p><button id="focus-primary" type="button">Focus primary finding</button></p>
+        </section>
+
+        <section class="card">
+          <h2>Legend</h2>
+          <div class="legend">
+            <span class="nominal">Nominal replay</span>
+            <span class="stress">Directed stress replay</span>
+            <span class="repair">Buffered repair replay</span>
+            <span class="boundary">Primary finding marker</span>
+          </div>
+        </section>
+
+        <section class="card">
+          <h2>Frame comparison</h2>
+          <pre id="frame-details">Load a bundle to inspect frames.</pre>
+        </section>
+      </aside>
+    </main>
+
+    <script type="module">
+      import * as THREE from "three";
+      import { OrbitControls } from "three/addons/controls/OrbitControls.js";
+
+      const defaultBundle = {
+        scenario_id: "demo-robustness-bundle",
+        scenario_family: "close_approach",
+        robustness_report: {
+          monte_carlo: { sample_count: 100, pass_count: 48, fail_count: 52, failure_probability: 0.52, most_common_failure: "PATH-CORRIDOR-001", worst_case_severity: "critical" },
+          adversarial_case: { found: true, triggered_rule: "PATH-CORRIDOR-001", perturbation_norm: 0.2, violation_time: 16.0 },
+          repair_comparison: null
+        },
+        nominal_replay: {
+          scenario_id: "demo-robustness-bundle",
+          scenario_family: "close_approach",
+          decision: "ALLOW",
+          highest_severity: "nominal",
+          primary_rule_id: null,
+          primary_violation_time: null,
+          frames: [
+            { t: 0, position: { x: 10, y: 0, z: 0 }, attitude_deg: { x: 0, y: 0, z: 0 }, active_markers: [], is_primary_violation_frame: false },
+            { t: 8, position: { x: 7, y: 2.2, z: 0 }, attitude_deg: { x: 0, y: 0, z: 0 }, active_markers: [], is_primary_violation_frame: false },
+            { t: 16, position: { x: 5, y: 2.35, z: 0 }, attitude_deg: { x: 0, y: 0, z: 0 }, active_markers: [], is_primary_violation_frame: false },
+            { t: 24, position: { x: 3.2, y: 2.3, z: 0 }, attitude_deg: { x: 0, y: 0, z: 0 }, active_markers: [], is_primary_violation_frame: false }
+          ]
+        },
+        stress_replay: {
+          scenario_id: "demo-robustness-bundle-stress",
+          scenario_family: "close_approach",
+          decision: "REQUIRE_REVIEW",
+          highest_severity: "review",
+          primary_rule_id: "PATH-CORRIDOR-001",
+          primary_violation_time: 16,
+          frames: [
+            { t: 0, position: { x: 10, y: 0.2, z: 0 }, attitude_deg: { x: 0, y: 0, z: 0 }, active_markers: [], is_primary_violation_frame: false },
+            { t: 8, position: { x: 7, y: 2.4, z: 0 }, attitude_deg: { x: 0, y: 0, z: 0 }, active_markers: [], is_primary_violation_frame: false },
+            { t: 16, position: { x: 5, y: 2.55, z: 0 }, attitude_deg: { x: 0, y: 0, z: 0 }, active_markers: [{ rule_id: "PATH-CORRIDOR-001", severity: "review" }], is_primary_violation_frame: true },
+            { t: 24, position: { x: 3.2, y: 2.5, z: 0 }, attitude_deg: { x: 0, y: 0, z: 0 }, active_markers: [], is_primary_violation_frame: false }
+          ]
+        },
+        buffered_repair_replay: null
+      };
+
+      const root = document.getElementById("scene-root");
+      const scene = new THREE.Scene();
+      scene.background = new THREE.Color(0x05070d);
+      const camera = new THREE.PerspectiveCamera(55, 1, 0.1, 2000);
+      camera.position.set(11, 9, 15);
+      const renderer = new THREE.WebGLRenderer({ antialias: true });
+      renderer.setPixelRatio(window.devicePixelRatio);
+      root.appendChild(renderer.domElement);
+      const controls = new OrbitControls(camera, renderer.domElement);
+      controls.enableDamping = true;
+      controls.target.set(4, 0, 0);
+      scene.add(new THREE.AmbientLight(0x9fc0ff, 0.75));
+      const keyLight = new THREE.DirectionalLight(0xffffff, 1.3);
+      keyLight.position.set(6, 10, 8);
+      scene.add(keyLight);
+      const grid = new THREE.GridHelper(26, 26, 0x24466f, 0x14233c);
+      grid.position.y = -0.02;
+      scene.add(grid);
+      scene.add(new THREE.AxesHelper(4));
+
+      const replayGroup = new THREE.Group();
+      scene.add(replayGroup);
+      let currentBundle = defaultBundle;
+      let markerMeshes = [];
+
+      const vehicles = {
+        nominal: makeVehicle(0xffffff, 0.95),
+        stress: makeVehicle(0xff6b6b, 0.9),
+        repair: makeVehicle(0x57f287, 0.9)
+      };
+      Object.values(vehicles).forEach((mesh) => scene.add(mesh));
+
+      function makeVehicle(color, opacity) {
+        const mesh = new THREE.Mesh(
+          new THREE.ConeGeometry(0.22, 0.75, 24),
+          new THREE.MeshStandardMaterial({ color, transparent: opacity < 1, opacity, roughness: 0.35 })
+        );
+        mesh.rotation.z = -Math.PI / 2;
+        return mesh;
+      }
+
+      function toVector(position) {
+        return new THREE.Vector3(position.x, position.z, position.y);
+      }
+
+      function material(color, opacity = 1) {
+        return new THREE.MeshStandardMaterial({ color, transparent: opacity < 1, opacity, roughness: 0.55 });
+      }
+
+      function addConstraints() {
+        const sphere = new THREE.Mesh(new THREE.SphereGeometry(2, 36, 18), material(0xffb86b, 0.1));
+        sphere.name = "protected-volume";
+        replayGroup.add(sphere);
+        const corridor = new THREE.Mesh(new THREE.BoxGeometry(11, 0.35, 5), material(0x7fa8ff, 0.08));
+        corridor.position.set(5.5, 0, 0);
+        corridor.name = "approach-corridor";
+        replayGroup.add(corridor);
+        const corridorWire = new THREE.LineSegments(
+          new THREE.WireframeGeometry(new THREE.BoxGeometry(11, 0.35, 5)),
+          new THREE.LineBasicMaterial({ color: 0x7fa8ff, transparent: true, opacity: 0.45 })
+        );
+        corridorWire.position.copy(corridor.position);
+        replayGroup.add(corridorWire);
+      }
+
+      function addPath(replay, color, name, opacity = 0.95) {
+        if (!replay || !replay.frames || replay.frames.length === 0) return;
+        const points = replay.frames.map((frame) => toVector(frame.position));
+        const geometry = new THREE.BufferGeometry().setFromPoints(points);
+        const line = new THREE.Line(geometry, new THREE.LineBasicMaterial({ color, transparent: true, opacity }));
+        line.name = name;
+        replayGroup.add(line);
+      }
+
+      function addMarkers(replay, color, label) {
+        if (!replay) return;
+        replay.frames.forEach((frame, index) => {
+          const hasMarkers = frame.is_primary_violation_frame || (frame.active_markers || []).length > 0;
+          if (!hasMarkers) return;
+          const mesh = new THREE.Mesh(new THREE.SphereGeometry(0.22, 24, 16), material(color, 1));
+          mesh.position.copy(toVector(frame.position));
+          mesh.userData = { replay, frame, index, label };
+          mesh.name = `${label}-primary-marker`;
+          replayGroup.add(mesh);
+          markerMeshes.push(mesh);
+        });
+      }
+
+      function clearReplayGroup() {
+        while (replayGroup.children.length) replayGroup.remove(replayGroup.children[0]);
+        markerMeshes = [];
+      }
+
+      function renderBundle(bundle) {
+        currentBundle = normalizeBundle(bundle);
+        clearReplayGroup();
+        addConstraints();
+        addPath(currentBundle.nominal_replay, 0x7fa8ff, "nominal-replay-path", 0.95);
+        addPath(currentBundle.stress_replay, 0xff6b6b, "stress-replay-path", 0.85);
+        addPath(currentBundle.buffered_repair_replay, 0x57f287, "buffered-repair-replay-path", 0.9);
+        addMarkers(currentBundle.nominal_replay, 0xffb86b, "nominal");
+        addMarkers(currentBundle.stress_replay, 0xff6b6b, "stress");
+        addMarkers(currentBundle.buffered_repair_replay, 0x57f287, "repair");
+        configureTimeline(currentBundle.nominal_replay.frames);
+        updateMetrics(currentBundle.robustness_report);
+        focusFrame(primaryIndex(currentBundle.nominal_replay));
+      }
+
+      function normalizeBundle(payload) {
+        if (payload.robustness_report && payload.nominal_replay) return payload;
+        return {
+          scenario_id: payload.scenario_id || "legacy-replay",
+          scenario_family: payload.scenario_family || "unknown",
+          robustness_report: { monte_carlo: {}, adversarial_case: {}, repair_comparison: null },
+          nominal_replay: payload.original_replay || payload,
+          stress_replay: null,
+          buffered_repair_replay: payload.buffered_repair_replay || payload.repaired_replay || null
+        };
+      }
+
+      function configureTimeline(frames) {
+        const timeline = document.getElementById("timeline");
+        timeline.min = 0;
+        timeline.max = Math.max(0, frames.length - 1);
+        timeline.value = 0;
+      }
+
+      function primaryIndex(replay) {
+        const index = replay.frames.findIndex((frame) => frame.is_primary_violation_frame);
+        return index >= 0 ? index : 0;
+      }
+
+      function updateMetrics(report) {
+        const monte = report.monte_carlo || {};
+        const stress = report.adversarial_case || {};
+        const repair = report.repair_comparison;
+        document.getElementById("metrics").textContent = JSON.stringify({
+          failure_probability: monte.failure_probability,
+          pass_fail: `${monte.pass_count ?? "?"} / ${monte.fail_count ?? "?"}`,
+          most_common_failure: monte.most_common_failure,
+          worst_case_severity: monte.worst_case_severity,
+          stress_found: stress.found,
+          stress_rule: stress.triggered_rule,
+          stress_perturbation_norm: stress.perturbation_norm,
+          repair_available: repair ? repair.repair_available : false,
+          repaired_failure_probability: repair ? repair.repaired_failure_probability : null,
+          absolute_risk_reduction: repair ? repair.absolute_risk_reduction : null,
+          relative_risk_reduction: repair ? repair.relative_risk_reduction : null
+        }, null, 2);
+      }
+
+      function frameAt(replay, index) {
+        return replay && replay.frames && replay.frames[index] ? replay.frames[index] : null;
+      }
+
+      function placeVehicle(mesh, frame) {
+        if (!frame) {
+          mesh.visible = false;
+          return;
+        }
+        mesh.visible = true;
+        mesh.position.copy(toVector(frame.position));
+        mesh.rotation.set(
+          THREE.MathUtils.degToRad(frame.attitude_deg.x),
+          THREE.MathUtils.degToRad(frame.attitude_deg.z),
+          THREE.MathUtils.degToRad(frame.attitude_deg.y) - Math.PI / 2
+        );
+      }
+
+      function focusFrame(index) {
+        const nominalFrame = frameAt(currentBundle.nominal_replay, index);
+        if (!nominalFrame) return;
+        placeVehicle(vehicles.nominal, nominalFrame);
+        placeVehicle(vehicles.stress, frameAt(currentBundle.stress_replay, index));
+        placeVehicle(vehicles.repair, frameAt(currentBundle.buffered_repair_replay, index));
+        controls.target.copy(toVector(nominalFrame.position));
+        document.getElementById("timeline").value = index;
+        document.getElementById("timeline-label").textContent = `T+${nominalFrame.t}s`;
+        document.getElementById("frame-details").textContent = JSON.stringify({
+          nominal: nominalFrame,
+          stress: frameAt(currentBundle.stress_replay, index),
+          buffered_repair: frameAt(currentBundle.buffered_repair_replay, index)
+        }, null, 2);
+      }
+
+      function onResize() {
+        const width = root.clientWidth;
+        const height = root.clientHeight;
+        camera.aspect = width / height;
+        camera.updateProjectionMatrix();
+        renderer.setSize(width, height);
+      }
+
+      const raycaster = new THREE.Raycaster();
+      const pointer = new THREE.Vector2();
+      renderer.domElement.addEventListener("click", (event) => {
+        const rect = renderer.domElement.getBoundingClientRect();
+        pointer.x = ((event.clientX - rect.left) / rect.width) * 2 - 1;
+        pointer.y = -((event.clientY - rect.top) / rect.height) * 2 + 1;
+        raycaster.setFromCamera(pointer, camera);
+        const hits = raycaster.intersectObjects(markerMeshes);
+        if (hits.length) focusFrame(hits[0].object.userData.index);
+      });
+
+      document.getElementById("timeline").addEventListener("input", (event) => focusFrame(Number(event.target.value)));
+      document.getElementById("file-input").addEventListener("change", async (event) => {
+        const file = event.target.files[0];
+        if (!file) return;
+        renderBundle(JSON.parse(await file.text()));
+      });
+      document.getElementById("focus-primary").addEventListener("click", () => focusFrame(primaryIndex(currentBundle.nominal_replay)));
+
+      function animate() {
+        requestAnimationFrame(animate);
+        controls.update();
+        renderer.render(scene, camera);
+      }
+
+      window.addEventListener("resize", onResize);
+      onResize();
+      renderBundle(defaultBundle);
+      animate();
+    </script>
+  </body>
+</html>
