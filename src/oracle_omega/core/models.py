@@ -153,6 +153,10 @@ class RepairRobustnessComparison(BaseModel):
     repaired_fail_count: int | None = None
     fixed_rules: list[str] = Field(default_factory=list)
     remaining_failures: list[str] = Field(default_factory=list)
+    repair_strategy: str | None = None
+    target_failure_probability: float | None = None
+    selected_sigma_buffer: float | None = None
+    candidate_failure_probabilities: dict[str, float] = Field(default_factory=dict)
 
 
 class RobustnessReport(BaseModel):
