@@ -156,15 +156,14 @@ def build_benchmark_summary(index: ExperimentIndex) -> str:
     ]
     for entry in index.entries:
         lines.append(
-            "| "
-            f"`{entry.experiment_id}` | "
-            f"`{entry.scenario_id}` | "
-            f"`{entry.decision}` | "
-            f"{entry.failed_count} | "
-            f"{risk_text(entry.original_failure_probability)} | "
-            f"{risk_text(entry.repaired_failure_probability)} | "
-            f"{risk_text(entry.absolute_risk_reduction)} | "
-            f"`{entry.most_common_failure}` |"
+            f"| `{entry.experiment_id}` "
+            f"| `{entry.scenario_id}` "
+            f"| `{entry.decision}` "
+            f"| {entry.failed_count} "
+            f"| {risk_text(entry.original_failure_probability)} "
+            f"| {risk_text(entry.repaired_failure_probability)} "
+            f"| {risk_text(entry.absolute_risk_reduction)} "
+            f"| `{entry.most_common_failure}` |"
         )
 
     lines.extend(
