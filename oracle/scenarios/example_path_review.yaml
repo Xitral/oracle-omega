@@ -1,0 +1,18 @@
+id: example-path-review
+name: Review path demo
+family: example
+parameters:
+  description: A simple path that intersects the central volume and exceeds the demo tilt limit.
+planned_path:
+  - t: 0
+    position: {x: 10.0, y: 0.0, z: 0.0}
+    attitude_deg: {x: 0.0, y: 0.0, z: 0.0}
+  - t: 10
+    position: {x: 4.0, y: 0.0, z: 0.0}
+    attitude_deg: {x: 4.0, y: 0.0, z: 0.0}
+  - t: 20
+    position: {x: 1.5, y: 0.0, z: 0.0}
+    attitude_deg: {x: 9.0, y: 0.0, z: 0.0}
+  - t: 30
+    position: {x: 3.0, y: 0.0, z: 0.0}
+    attitude_deg: {x: 7.0, y: 0.0, z: 0.0}
