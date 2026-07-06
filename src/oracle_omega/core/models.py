@@ -143,6 +143,18 @@ class AdversarialCase(BaseModel):
     description: str | None = None
 
 
+class RepairRobustnessComparison(BaseModel):
+    repair_available: bool
+    original_failure_probability: float
+    repaired_failure_probability: float | None = None
+    absolute_risk_reduction: float | None = None
+    relative_risk_reduction: float | None = None
+    original_fail_count: int
+    repaired_fail_count: int | None = None
+    fixed_rules: list[str] = Field(default_factory=list)
+    remaining_failures: list[str] = Field(default_factory=list)
+
+
 class RobustnessReport(BaseModel):
     scenario_id: str
     scenario_family: str
@@ -152,3 +164,4 @@ class RobustnessReport(BaseModel):
     uncertainty: UncertaintyConfig
     monte_carlo: MonteCarloSummary
     adversarial_case: AdversarialCase
+    repair_comparison: RepairRobustnessComparison | None = None
