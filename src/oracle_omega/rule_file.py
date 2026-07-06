@@ -19,4 +19,16 @@ def read_rule_file(path: str | Path) -> list[dict[str, Any]]:
             "max_deg": 8.0,
             "reason": "Tilt check.",
         },
+        {
+            "id": "PATH-CORRIDOR-001",
+            "type": "corridor_limit",
+            "max_offset": 2.5,
+            "reason": "Path corridor offset check.",
+        },
+        {
+            "id": "PATH-SPEED-001",
+            "type": "speed_limit",
+            "max_speed": 0.65,
+            "reason": "Path segment speed check.",
+        },
     ]
