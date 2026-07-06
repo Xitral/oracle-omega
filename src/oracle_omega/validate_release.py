@@ -7,6 +7,7 @@ from pathlib import Path
 
 from pydantic import BaseModel, Field
 
+from src.oracle_omega.benchmark_experiments import run_benchmark_experiments
 from src.oracle_omega.experiment import run_experiment
 from src.oracle_omega.experiment_index import build_experiment_index, write_index_outputs
 from src.oracle_omega.robustness_bundle import build_robustness_visualization_bundle
@@ -145,6 +146,24 @@ def validate_experiment_index(checks: list[ReleaseValidationCheck]) -> None:
     add_check(checks, "experiment-index", True, "Experiment index and benchmark summary validated.")
 
 
+def validate_batch_benchmark(checks: list[ReleaseValidationCheck]) -> None:
+    with tempfile.TemporaryDirectory() as temp_dir:
+        summary = run_benchmark_experiments(
+            suite_root=DEFAULT_SCENARIOS,
+            rule_catalog_path=DEFAULT_RULES,
+            output_root=Path(temp_dir),
+            samples=10,
+        )
+        require(summary.generated_count >= 12, f"Expected at least 12 generated experiments, got {summary.generated_count}.")
+        require(summary.skipped_count >= 3, f"Expected at least 3 skipped invalid cases, got {summary.skipped_count}.")
+        require(summary.index.experiment_count == summary.generated_count, "Index count did not match generated experiments.")
+        require(summary.index.repair_comparison_count >= 1, "Benchmark should include at least one repair comparison.")
+        require((Path(temp_dir) / "index.json").exists(), "Benchmark index JSON missing.")
+        require((Path(temp_dir) / "benchmark-summary.md").exists(), "Benchmark summary missing.")
+
+    add_check(checks, "batch-benchmark", True, "Batch benchmark experiment generation validated.")
+
+
 def validate_theater_contracts(checks: list[ReleaseValidationCheck]) -> None:
     required_tokens = {
         "index.html": ["scene-root", "replay-path-line", "ghost-repair-path-line", "WebGLRenderer"],
@@ -169,6 +188,7 @@ def run_release_validation() -> ReleaseValidationReport:
     validate_robustness_bundles(checks)
     validate_experiment_runs(checks)
     validate_experiment_index(checks)
+    validate_batch_benchmark(checks)
     validate_theater_contracts(checks)
     return ReleaseValidationReport(passed=all(check.passed for check in checks), checks=checks)
 
