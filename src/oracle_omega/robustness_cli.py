@@ -24,6 +24,11 @@ def build_parser() -> argparse.ArgumentParser:
         help="Path to a YAML check catalog.",
     )
     parser.add_argument("--samples", type=int, default=None, help="Optional sample count override.")
+    parser.add_argument(
+        "--compare-repair",
+        action="store_true",
+        help="Include original-vs-repaired uncertainty robustness comparison.",
+    )
     parser.add_argument("--indent", type=int, default=2, help="JSON indentation level.")
     parser.add_argument("--out", type=Path, default=None, help="Optional output path for robustness JSON.")
     return parser
@@ -35,7 +40,12 @@ def main() -> None:
 
     scenario = read_scenario(args.scenario)
     rules = read_rule_file(args.rules)
-    report = build_robustness_report(scenario, rules, sample_override=args.samples)
+    report = build_robustness_report(
+        scenario,
+        rules,
+        sample_override=args.samples,
+        compare_repair=args.compare_repair,
+    )
     payload = json.dumps(report.model_dump(mode="json"), indent=args.indent)
     print(payload)
     if args.out is not None:
