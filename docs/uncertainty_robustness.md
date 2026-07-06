@@ -36,7 +36,9 @@ The summary reports:
 
 ## Directed stress search
 
-In addition to random perturbations, ORACLE-Omega performs a deterministic directed stress search. It looks for a small directed path shift that changes the scenario from acceptable to requiring review.
+In addition to random perturbations, ORACLE-Omega performs a deterministic directed stress search. It looks for a small directed path shift that changes a nominally acceptable scenario into a scenario requiring review.
+
+Directed stress search is reserved for scenarios whose nominal decision is `ALLOW`. If the nominal scenario already requires review, the report records that stress search is not applicable.
 
 The returned stress case includes:
 
@@ -48,10 +50,38 @@ The returned stress case includes:
 - perturbed scenario
 - evidence for the perturbed scenario
 
-## Example command
+## Repair robustness comparison
+
+The robustness report can optionally compare the original path against the repaired counterfactual path.
+
+The comparison reports:
+
+- whether repair was available
+- original failure probability
+- repaired failure probability
+- absolute risk reduction
+- relative risk reduction
+- original fail count
+- repaired fail count
+- fixed rules
+- remaining failures
+
+This answers a stronger research question than pass/fail repair:
+
+> Did the repaired path become more robust under uncertainty?
+
+## Example commands
+
+Nominal robustness:
 
 ```powershell
-python -m src.oracle_omega.robustness_cli oracle/scenarios/example_path_pass.yaml --samples 100 --out data/robustness/pass-robustness.json
+python -m src.oracle_omega.robustness_cli oracle/scenarios/close_approach/fragile_corridor_pass.yaml --samples 100 --out data/robustness/fragile-corridor-robustness.json
+```
+
+Repair comparison:
+
+```powershell
+python -m src.oracle_omega.robustness_cli oracle/scenarios/example_corridor_speed_review.yaml --samples 100 --compare-repair --out data/robustness/corridor-speed-repair-robustness.json
 ```
 
 ## Research metrics unlocked
@@ -65,6 +95,7 @@ This subsystem enables experiments around:
 - robustness of repaired paths
 - sensitivity to check-catalog thresholds
 - robustness differences across scenario families
+- risk reduction after counterfactual repair
 
 ## Next extensions
 
@@ -72,6 +103,6 @@ Planned extensions:
 
 - display uncertainty tubes in ORACLE-Theater
 - display stress ghost paths in ORACLE-Theater
-- compare original and repaired robustness reports
+- compare original and repaired robustness reports in ORACLE-Theater
 - add low-discrepancy sampling
 - add uncertainty-aware repair objectives
