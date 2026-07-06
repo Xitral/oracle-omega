@@ -3,7 +3,7 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>ORACLE-Omega</title>
+    <title>ORACLE-Omega Theater</title>
     <style>
       body {
         margin: 0;
@@ -14,7 +14,7 @@
       }
       main {
         display: grid;
-        grid-template-columns: 1.5fr 1fr;
+        grid-template-columns: minmax(0, 1.5fr) minmax(360px, 0.8fr);
         gap: 24px;
         padding: 32px;
       }
@@ -27,7 +27,7 @@
         box-shadow: 0 24px 80px rgba(0, 0, 0, 0.35);
       }
       .viewport {
-        min-height: 520px;
+        min-height: 620px;
         padding: 24px;
         color: #7fa8ff;
         position: relative;
@@ -35,15 +35,20 @@
       }
       .scene-grid {
         height: 100%;
-        min-height: 460px;
+        min-height: 560px;
         border-radius: 14px;
         background:
           radial-gradient(circle at 70% 35%, rgba(127, 168, 255, 0.18), transparent 24%),
           linear-gradient(rgba(127, 168, 255, 0.08) 1px, transparent 1px),
           linear-gradient(90deg, rgba(127, 168, 255, 0.08) 1px, transparent 1px);
         background-size: auto, 42px 42px, 42px 42px;
-        display: grid;
-        place-items: center;
+        position: relative;
+      }
+      svg {
+        position: absolute;
+        inset: 0;
+        width: 100%;
+        height: 100%;
       }
       .panel {
         padding: 24px;
@@ -74,6 +79,27 @@
       }
       code {
         color: #ffb86b;
+        word-break: break-word;
+      }
+      button {
+        border: 1px solid #2d4268;
+        border-radius: 12px;
+        background: #142037;
+        color: #f4f7fb;
+        cursor: pointer;
+        padding: 10px 14px;
+      }
+      button:hover {
+        background: #1b2b49;
+      }
+      input[type="file"] {
+        width: 100%;
+        margin-top: 8px;
+      }
+      pre {
+        white-space: pre-wrap;
+        word-break: break-word;
+        color: #c6d6ff;
       }
       ul {
         padding-left: 20px;
@@ -84,35 +110,139 @@
     <main>
       <section class="viewport">
         <div class="scene-grid">
-          Future 3D evidence viewport: planned path, corridor, reference volume, violation markers
+          <svg id="scene" viewBox="0 0 900 560" role="img" aria-label="ORACLE-Omega replay path view">
+            <circle cx="450" cy="280" r="76" fill="rgba(255, 184, 107, 0.08)" stroke="rgba(255, 184, 107, 0.55)" stroke-dasharray="8 8" />
+            <rect x="220" y="100" width="460" height="360" fill="rgba(127, 168, 255, 0.04)" stroke="rgba(127, 168, 255, 0.35)" stroke-dasharray="10 8" />
+            <text x="450" y="275" text-anchor="middle" fill="rgba(255, 184, 107, 0.9)" font-size="13">protected volume</text>
+            <text x="450" y="92" text-anchor="middle" fill="rgba(127, 168, 255, 0.9)" font-size="13">approach corridor</text>
+            <g id="path-layer"></g>
+            <g id="marker-layer"></g>
+          </svg>
         </div>
       </section>
       <aside class="panel">
         <span class="badge">SIMULATION ONLY</span>
         <h1>ORACLE-Omega</h1>
-        <p>First interface shell for replaying spatial assurance evidence.</p>
+        <p>Replay viewer for spatial assurance evidence.</p>
 
         <section class="card">
-          <h2>Current checks</h2>
-          <ul>
-            <li>Central radius clearance</li>
-            <li>Maximum roll/pitch tilt</li>
-            <li>Lateral corridor offset</li>
-            <li>Maximum segment speed</li>
-          </ul>
+          <h2>Load replay JSON</h2>
+          <input id="file-input" type="file" accept="application/json,.json" />
+          <p><code>python -m src.oracle_omega.cli oracle/scenarios/example_corridor_speed_review.yaml --replay-out data/replays/corridor-speed-replay.json</code></p>
         </section>
 
         <section class="card">
-          <h2>Example decision</h2>
-          <p class="decision">REQUIRE_REVIEW</p>
-          <p>Corridor and speed checks exceeded their starter limits.</p>
+          <h2>Decision</h2>
+          <p id="decision" class="decision">No replay loaded</p>
+          <p id="primary"></p>
         </section>
 
         <section class="card">
-          <h2>CLI</h2>
-          <p><code>python -m src.oracle_omega.cli oracle/scenarios/example_corridor_speed_review.yaml --out data/replays/corridor-speed.json</code></p>
+          <h2>Frame focus</h2>
+          <button id="focus-primary" type="button">Focus primary violation</button>
+          <pre id="frame-details">Load a replay file to inspect frame markers.</pre>
         </section>
       </aside>
     </main>
+
+    <script>
+      const defaultReplay = {
+        scenario_id: "example-corridor-speed-review",
+        scenario_family: "close_approach",
+        decision: "REQUIRE_REVIEW",
+        primary_rule_id: "PATH-SPEED-001",
+        primary_violation_time: 5,
+        frames: [
+          { t: 0, position: { x: 10, y: 0, z: 0 }, attitude_deg: { x: 0, y: 0, z: 0 }, active_markers: [], is_primary_violation_frame: false },
+          { t: 5, position: { x: 7, y: 3.2, z: 0 }, attitude_deg: { x: 0, y: 0, z: 0 }, active_markers: [{ rule_id: "PATH-SPEED-001", t: 5, label: "Path segment speed check.", severity: "review" }], is_primary_violation_frame: true },
+          { t: 10, position: { x: 3.5, y: 3.6, z: 0 }, attitude_deg: { x: 0, y: 0, z: 0 }, active_markers: [{ rule_id: "PATH-CORRIDOR-001", t: 10, label: "Path corridor offset check.", severity: "review" }], is_primary_violation_frame: false },
+          { t: 15, position: { x: 2.6, y: 3.1, z: 0 }, attitude_deg: { x: 0, y: 0, z: 0 }, active_markers: [], is_primary_violation_frame: false }
+        ]
+      };
+
+      const sceneWidth = 900;
+      const sceneHeight = 560;
+      const scale = 42;
+      const origin = { x: 450, y: 280 };
+      let currentReplay = defaultReplay;
+
+      function project(position) {
+        return {
+          x: origin.x + position.x * scale,
+          y: origin.y - position.y * scale
+        };
+      }
+
+      function renderReplay(replay) {
+        currentReplay = replay;
+        const pathLayer = document.getElementById("path-layer");
+        const markerLayer = document.getElementById("marker-layer");
+        pathLayer.innerHTML = "";
+        markerLayer.innerHTML = "";
+
+        const points = replay.frames.map((frame) => project(frame.position));
+        const polyline = document.createElementNS("http://www.w3.org/2000/svg", "polyline");
+        polyline.setAttribute("points", points.map((point) => `${point.x},${point.y}`).join(" "));
+        polyline.setAttribute("fill", "none");
+        polyline.setAttribute("stroke", "rgba(127, 168, 255, 0.95)");
+        polyline.setAttribute("stroke-width", "4");
+        polyline.setAttribute("stroke-linecap", "round");
+        polyline.setAttribute("stroke-linejoin", "round");
+        pathLayer.appendChild(polyline);
+
+        replay.frames.forEach((frame) => {
+          const point = project(frame.position);
+          const group = document.createElementNS("http://www.w3.org/2000/svg", "g");
+          group.setAttribute("tabindex", "0");
+          group.setAttribute("role", "button");
+          group.style.cursor = "pointer";
+          group.addEventListener("click", () => showFrameDetails(frame));
+
+          const dot = document.createElementNS("http://www.w3.org/2000/svg", "circle");
+          dot.setAttribute("cx", point.x);
+          dot.setAttribute("cy", point.y);
+          dot.setAttribute("r", frame.is_primary_violation_frame ? "12" : frame.active_markers.length ? "9" : "6");
+          dot.setAttribute("fill", frame.is_primary_violation_frame ? "#ffb86b" : frame.active_markers.length ? "#ff6b6b" : "#7fa8ff");
+          dot.setAttribute("stroke", "#05070d");
+          dot.setAttribute("stroke-width", "3");
+          group.appendChild(dot);
+
+          const label = document.createElementNS("http://www.w3.org/2000/svg", "text");
+          label.setAttribute("x", point.x + 12);
+          label.setAttribute("y", point.y - 12);
+          label.setAttribute("fill", "#dbe7ff");
+          label.setAttribute("font-size", "12");
+          label.textContent = `T+${frame.t}s`;
+          group.appendChild(label);
+
+          markerLayer.appendChild(group);
+        });
+
+        document.getElementById("decision").textContent = replay.decision;
+        document.getElementById("primary").textContent = replay.primary_rule_id
+          ? `Primary: ${replay.primary_rule_id} at T+${replay.primary_violation_time}s`
+          : "No primary violation.";
+        const primaryFrame = replay.frames.find((frame) => frame.is_primary_violation_frame) || replay.frames[0];
+        showFrameDetails(primaryFrame);
+      }
+
+      function showFrameDetails(frame) {
+        document.getElementById("frame-details").textContent = JSON.stringify(frame, null, 2);
+      }
+
+      document.getElementById("file-input").addEventListener("change", async (event) => {
+        const file = event.target.files[0];
+        if (!file) return;
+        const text = await file.text();
+        renderReplay(JSON.parse(text));
+      });
+
+      document.getElementById("focus-primary").addEventListener("click", () => {
+        const primaryFrame = currentReplay.frames.find((frame) => frame.is_primary_violation_frame);
+        if (primaryFrame) showFrameDetails(primaryFrame);
+      });
+
+      renderReplay(defaultReplay);
+    </script>
   </body>
 </html>
