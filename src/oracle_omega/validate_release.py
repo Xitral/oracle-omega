@@ -148,20 +148,25 @@ def validate_experiment_index(checks: list[ReleaseValidationCheck]) -> None:
 
 def validate_batch_benchmark(checks: list[ReleaseValidationCheck]) -> None:
     with tempfile.TemporaryDirectory() as temp_dir:
+        root = Path(temp_dir)
         summary = run_benchmark_experiments(
             suite_root=DEFAULT_SCENARIOS,
             rule_catalog_path=DEFAULT_RULES,
-            output_root=Path(temp_dir),
+            output_root=root,
             samples=10,
         )
         require(summary.generated_count >= 12, f"Expected at least 12 generated experiments, got {summary.generated_count}.")
         require(summary.skipped_count >= 3, f"Expected at least 3 skipped invalid cases, got {summary.skipped_count}.")
         require(summary.index.experiment_count == summary.generated_count, "Index count did not match generated experiments.")
         require(summary.index.repair_comparison_count >= 1, "Benchmark should include at least one repair comparison.")
-        require((Path(temp_dir) / "index.json").exists(), "Benchmark index JSON missing.")
-        require((Path(temp_dir) / "benchmark-summary.md").exists(), "Benchmark summary missing.")
+        require(summary.analytics.aggregate.experiment_count == summary.generated_count, "Analytics count did not match generated experiments.")
+        require(summary.analytics.aggregate.mean_absolute_risk_reduction is not None, "Analytics missing mean risk reduction.")
+        require((root / "index.json").exists(), "Benchmark index JSON missing.")
+        require((root / "benchmark-summary.md").exists(), "Benchmark summary missing.")
+        require((root / "benchmark-analytics.json").exists(), "Benchmark analytics JSON missing.")
+        require((root / "benchmark-analytics.md").exists(), "Benchmark analytics summary missing.")
 
-    add_check(checks, "batch-benchmark", True, "Batch benchmark experiment generation validated.")
+    add_check(checks, "batch-benchmark", True, "Batch benchmark experiment and analytics generation validated.")
 
 
 def validate_theater_contracts(checks: list[ReleaseValidationCheck]) -> None:
