@@ -4,6 +4,7 @@ import argparse
 import json
 from pathlib import Path
 
+from src.oracle_omega.repair import build_counterfactual_replay_bundle
 from src.oracle_omega.replay import build_replay_bundle
 from src.oracle_omega.rule_file import read_rule_file
 from src.oracle_omega.scenario_file import read_scenario
@@ -34,6 +35,12 @@ def build_parser() -> argparse.ArgumentParser:
         help="Optional output path for replay timeline JSON.",
     )
     parser.add_argument(
+        "--repair-out",
+        type=Path,
+        default=None,
+        help="Optional output path for counterfactual repair and ghost replay JSON.",
+    )
+    parser.add_argument(
         "--suite",
         type=Path,
         default=None,
@@ -56,10 +63,23 @@ def run_single_scenario(args: argparse.Namespace) -> None:
     if args.out is not None:
         write_json(args.out, payload)
 
-    if args.replay_out is not None:
+    replay = None
+    if args.replay_out is not None or args.repair_out is not None:
         replay = build_replay_bundle(scenario, evidence)
+
+    if args.replay_out is not None and replay is not None:
         replay_payload = json.dumps(replay.model_dump(mode="json"), indent=args.indent)
         write_json(args.replay_out, replay_payload)
+
+    if args.repair_out is not None and replay is not None:
+        counterfactual = build_counterfactual_replay_bundle(
+            scenario,
+            rules,
+            original_evidence=evidence,
+            original_replay=replay,
+        )
+        repair_payload = json.dumps(counterfactual.model_dump(mode="json"), indent=args.indent)
+        write_json(args.repair_out, repair_payload)
 
 
 def run_suite_mode(args: argparse.Namespace) -> None:
