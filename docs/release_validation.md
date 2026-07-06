@@ -32,6 +32,8 @@ Each CI run performs:
 6. experiment index generation
 7. release validation harness
 
+The release validation harness also runs the batch benchmark experiment gate, so CI validates corpus-level experiment generation through the final release gate.
+
 ## Local release validation
 
 Run:
@@ -51,6 +53,7 @@ The validation harness checks:
 - scenario and rule catalog hashes
 - experiment index generation
 - benchmark summary generation
+- batch benchmark experiment generation
 - replay Theater static contract
 - robustness Theater static contract
 
