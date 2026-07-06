@@ -44,6 +44,11 @@ class RuleResult(BaseModel):
 
 class EvidenceCard(BaseModel):
     scenario_id: str
+    scenario_family: str
     decision: Decision
     results: list[RuleResult]
+    checked_count: int
+    failed_count: int
+    primary_rule_id: str | None = None
+    primary_violation_time: float | None = None
     summary: str
