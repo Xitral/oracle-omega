@@ -1,0 +1,6 @@
+id: stress-unknown-family
+name: Stress Unknown Family
+family: unknown_family
+planned_path:
+  - t: 0.0
+    position: {x: 10.0, y: 0.0, z: 0.0}
