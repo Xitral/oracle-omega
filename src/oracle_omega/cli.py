@@ -19,6 +19,7 @@ def build_parser() -> argparse.ArgumentParser:
         help="Path to a YAML rule file.",
     )
     parser.add_argument("--indent", type=int, default=2, help="JSON indentation level.")
+    parser.add_argument("--out", type=Path, default=None, help="Optional output path for evidence JSON.")
     return parser
 
 
@@ -29,8 +30,13 @@ def main() -> None:
     scenario = read_scenario(args.scenario)
     rules = read_rule_file(args.rules)
     evidence = review(scenario, rules)
+    payload = json.dumps(evidence.model_dump(mode="json"), indent=args.indent)
 
-    print(json.dumps(evidence.model_dump(mode="json"), indent=args.indent))
+    print(payload)
+
+    if args.out is not None:
+        args.out.parent.mkdir(parents=True, exist_ok=True)
+        args.out.write_text(payload + "\n", encoding="utf-8")
 
 
 if __name__ == "__main__":
