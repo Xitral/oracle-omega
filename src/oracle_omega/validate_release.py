@@ -8,6 +8,7 @@ from pathlib import Path
 from pydantic import BaseModel, Field
 
 from src.oracle_omega.experiment import run_experiment
+from src.oracle_omega.experiment_index import build_experiment_index, write_index_outputs
 from src.oracle_omega.robustness_bundle import build_robustness_visualization_bundle
 from src.oracle_omega.rule_file import read_rule_file
 from src.oracle_omega.suite_runner import run_suite
@@ -111,6 +112,39 @@ def validate_experiment_runs(checks: list[ReleaseValidationCheck]) -> None:
     add_check(checks, "experiment-run", True, "Experiment artifacts and provenance hashes validated.")
 
 
+def validate_experiment_index(checks: list[ReleaseValidationCheck]) -> None:
+    with tempfile.TemporaryDirectory() as temp_dir:
+        root = Path(temp_dir)
+        run_experiment(
+            FRAGILE_SCENARIO,
+            DEFAULT_RULES,
+            output_root=root,
+            experiment_id="release-fragile-index-run",
+            robustness=True,
+            robustness_samples=20,
+            tags=["release-validation", "fragile"],
+        )
+        run_experiment(
+            REPAIR_SCENARIO,
+            DEFAULT_RULES,
+            output_root=root,
+            experiment_id="release-repair-index-run",
+            robustness=True,
+            robustness_samples=20,
+            compare_repair=True,
+            tags=["release-validation", "repair"],
+        )
+        index = build_experiment_index(root)
+        write_index_outputs(index, root / "index.json", root / "benchmark-summary.md")
+        require(index.experiment_count == 2, f"Expected 2 indexed experiments, got {index.experiment_count}.")
+        require(index.robustness_count == 2, f"Expected 2 robustness experiments, got {index.robustness_count}.")
+        require(index.repair_comparison_count == 1, f"Expected 1 repair comparison, got {index.repair_comparison_count}.")
+        require((root / "index.json").exists(), "Experiment index JSON missing.")
+        require((root / "benchmark-summary.md").exists(), "Benchmark summary missing.")
+
+    add_check(checks, "experiment-index", True, "Experiment index and benchmark summary validated.")
+
+
 def validate_theater_contracts(checks: list[ReleaseValidationCheck]) -> None:
     required_tokens = {
         "index.html": ["scene-root", "replay-path-line", "ghost-repair-path-line", "WebGLRenderer"],
@@ -134,6 +168,7 @@ def run_release_validation() -> ReleaseValidationReport:
     validate_suite(checks)
     validate_robustness_bundles(checks)
     validate_experiment_runs(checks)
+    validate_experiment_index(checks)
     validate_theater_contracts(checks)
     return ReleaseValidationReport(passed=all(check.passed for check in checks), checks=checks)
 
