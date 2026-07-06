@@ -10,6 +10,7 @@ SUPPORTED_CHECK_TYPES = {
     "tilt_limit",
     "corridor_limit",
     "speed_limit",
+    "acceleration_limit",
 }
 
 REQUIRED_FIELDS_BY_TYPE = {
@@ -17,6 +18,7 @@ REQUIRED_FIELDS_BY_TYPE = {
     "tilt_limit": {"id", "type", "max_deg", "reason"},
     "corridor_limit": {"id", "type", "max_offset", "reason"},
     "speed_limit": {"id", "type", "max_speed", "reason"},
+    "acceleration_limit": {"id", "type", "max_acceleration", "reason"},
 }
 
 
@@ -90,7 +92,7 @@ def validate_families(item: dict[str, Any], file_path: Path, index: int) -> None
 
 
 def validate_numeric_fields(item: dict[str, Any], file_path: Path, index: int) -> None:
-    for field in ("radius", "max_deg", "max_offset", "max_speed"):
+    for field in ("radius", "max_deg", "max_offset", "max_speed", "max_acceleration"):
         if field not in item:
             continue
         value = item[field]
