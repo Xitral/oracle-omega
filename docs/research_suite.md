@@ -19,6 +19,27 @@ Current validation requirements:
 
 Invalid scenarios are rejected during single-scenario review. During suite evaluation, invalid scenarios are recorded without stopping the full run.
 
+## Check catalog layer
+
+Suite runs are parameterized by a YAML check catalog.
+
+The default catalog is:
+
+```text
+oracle/rules/starter_rules.yaml
+```
+
+Researchers can create alternate catalogs to compare stricter or looser spatial envelopes without changing Python code.
+
+Example comparison dimensions:
+
+- speed limits
+- corridor limits
+- clearance radius
+- tilt envelope
+- scenario-family scoping
+- recommendation wording
+
 ## Suite output
 
 The suite summary reports:
@@ -47,5 +68,6 @@ This lets the project answer questions such as:
 - How many scenarios require review?
 - How often do critical findings appear?
 - Which fixtures are malformed or scientifically unusable?
+- How do findings change under alternate check catalogs?
 
 This is the beginning of ORACLE-Omega as a benchmarkable research platform rather than a single-scenario demonstration.
