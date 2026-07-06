@@ -3,8 +3,11 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>ORACLE-Omega Theater</title>
+    <title>ORACLE-Omega 3D Theater</title>
     <style>
+      :root {
+        color-scheme: dark;
+      }
       body {
         margin: 0;
         min-height: 100vh;
@@ -14,7 +17,7 @@
       }
       main {
         display: grid;
-        grid-template-columns: minmax(0, 1.5fr) minmax(360px, 0.8fr);
+        grid-template-columns: minmax(0, 1.7fr) minmax(380px, 0.8fr);
         gap: 24px;
         padding: 32px;
       }
@@ -27,28 +30,29 @@
         box-shadow: 0 24px 80px rgba(0, 0, 0, 0.35);
       }
       .viewport {
-        min-height: 620px;
-        padding: 24px;
-        color: #7fa8ff;
+        min-height: 680px;
+        padding: 0;
         position: relative;
         overflow: hidden;
       }
-      .scene-grid {
-        height: 100%;
-        min-height: 560px;
-        border-radius: 14px;
-        background:
-          radial-gradient(circle at 70% 35%, rgba(127, 168, 255, 0.18), transparent 24%),
-          linear-gradient(rgba(127, 168, 255, 0.08) 1px, transparent 1px),
-          linear-gradient(90deg, rgba(127, 168, 255, 0.08) 1px, transparent 1px);
-        background-size: auto, 42px 42px, 42px 42px;
-        position: relative;
+      #scene-root {
+        min-height: 680px;
+        height: 72vh;
       }
-      svg {
+      #hud {
         position: absolute;
-        inset: 0;
-        width: 100%;
-        height: 100%;
+        left: 18px;
+        top: 18px;
+        padding: 12px 14px;
+        border: 1px solid rgba(127, 168, 255, 0.28);
+        border-radius: 14px;
+        background: rgba(5, 7, 13, 0.72);
+        backdrop-filter: blur(8px);
+      }
+      #hud strong {
+        display: block;
+        color: #ffb86b;
+        margin-bottom: 4px;
       }
       .panel {
         padding: 24px;
@@ -86,6 +90,16 @@
         font-weight: 700;
         letter-spacing: 0.05em;
       }
+      .timeline-row {
+        display: grid;
+        grid-template-columns: 1fr auto;
+        gap: 10px;
+        align-items: center;
+      }
+      input[type="range"],
+      input[type="file"] {
+        width: 100%;
+      }
       code {
         color: #ffb86b;
         word-break: break-word;
@@ -101,38 +115,44 @@
       button:hover {
         background: #1b2b49;
       }
-      input[type="file"] {
-        width: 100%;
-        margin-top: 8px;
-      }
       pre {
         white-space: pre-wrap;
         word-break: break-word;
         color: #c6d6ff;
+        max-height: 260px;
+        overflow: auto;
       }
-      ul {
-        padding-left: 20px;
+      .legend {
+        display: grid;
+        gap: 8px;
       }
+      .legend span::before {
+        content: "";
+        display: inline-block;
+        width: 10px;
+        height: 10px;
+        margin-right: 8px;
+        border-radius: 999px;
+      }
+      .legend .nominal::before { background: #7fa8ff; }
+      .legend .review::before { background: #ffd166; }
+      .legend .critical::before { background: #ff6b6b; }
+      .legend .primary::before { background: #ffb86b; }
     </style>
   </head>
   <body>
     <main>
       <section class="viewport">
-        <div class="scene-grid">
-          <svg id="scene" viewBox="0 0 900 560" role="img" aria-label="ORACLE-Omega replay path view">
-            <circle cx="450" cy="280" r="76" fill="rgba(255, 184, 107, 0.08)" stroke="rgba(255, 184, 107, 0.55)" stroke-dasharray="8 8" />
-            <rect x="220" y="100" width="460" height="360" fill="rgba(127, 168, 255, 0.04)" stroke="rgba(127, 168, 255, 0.35)" stroke-dasharray="10 8" />
-            <text x="450" y="275" text-anchor="middle" fill="rgba(255, 184, 107, 0.9)" font-size="13">protected volume</text>
-            <text x="450" y="92" text-anchor="middle" fill="rgba(127, 168, 255, 0.9)" font-size="13">approach corridor</text>
-            <g id="path-layer"></g>
-            <g id="marker-layer"></g>
-          </svg>
+        <div id="scene-root" aria-label="ORACLE-Omega 3D spatial assurance theater"></div>
+        <div id="hud">
+          <strong>3D ORACLE-Theater</strong>
+          <div>Drag to orbit. Scroll to zoom. Click markers or scrub the timeline.</div>
         </div>
       </section>
       <aside class="panel">
         <span class="badge">SIMULATION ONLY</span>
         <h1>ORACLE-Omega</h1>
-        <p>Replay viewer for spatial assurance evidence.</p>
+        <p>3D replay viewer for spatial assurance evidence.</p>
 
         <section class="card">
           <h2>Load replay JSON</h2>
@@ -149,14 +169,35 @@
         </section>
 
         <section class="card">
-          <h2>Frame focus</h2>
-          <button id="focus-primary" type="button">Focus primary violation</button>
+          <h2>Timeline</h2>
+          <div class="timeline-row">
+            <input id="timeline" type="range" min="0" max="0" value="0" step="1" />
+            <span id="timeline-label">T+0s</span>
+          </div>
+          <p><button id="focus-primary" type="button">Focus primary violation</button></p>
+        </section>
+
+        <section class="card">
+          <h2>Legend</h2>
+          <div class="legend">
+            <span class="nominal">Nominal frame</span>
+            <span class="review">Review marker</span>
+            <span class="critical">Critical marker</span>
+            <span class="primary">Primary violation focus</span>
+          </div>
+        </section>
+
+        <section class="card">
+          <h2>Frame evidence</h2>
           <pre id="frame-details">Load a replay file to inspect frame markers.</pre>
         </section>
       </aside>
     </main>
 
-    <script>
+    <script type="module">
+      import * as THREE from "https://unpkg.com/three@0.160.0/build/three.module.js";
+      import { OrbitControls } from "https://unpkg.com/three@0.160.0/examples/jsm/controls/OrbitControls.js";
+
       const defaultReplay = {
         scenario_id: "example-corridor-speed-review",
         scenario_family: "close_approach",
@@ -173,78 +214,160 @@
         ]
       };
 
-      const scale = 42;
-      const origin = { x: 450, y: 280 };
-      let currentReplay = defaultReplay;
+      const root = document.getElementById("scene-root");
+      const scene = new THREE.Scene();
+      scene.background = new THREE.Color(0x05070d);
 
-      function project(position) {
-        return {
-          x: origin.x + position.x * scale,
-          y: origin.y - position.y * scale
-        };
+      const camera = new THREE.PerspectiveCamera(55, 1, 0.1, 2000);
+      camera.position.set(11, 9, 15);
+
+      const renderer = new THREE.WebGLRenderer({ antialias: true });
+      renderer.setPixelRatio(window.devicePixelRatio);
+      root.appendChild(renderer.domElement);
+
+      const controls = new OrbitControls(camera, renderer.domElement);
+      controls.enableDamping = true;
+      controls.target.set(4, 0, 0);
+
+      scene.add(new THREE.AmbientLight(0x9fc0ff, 0.75));
+      const keyLight = new THREE.DirectionalLight(0xffffff, 1.3);
+      keyLight.position.set(6, 10, 8);
+      scene.add(keyLight);
+
+      const grid = new THREE.GridHelper(26, 26, 0x24466f, 0x14233c);
+      grid.position.y = -0.02;
+      scene.add(grid);
+
+      const axes = new THREE.AxesHelper(4);
+      scene.add(axes);
+
+      const replayGroup = new THREE.Group();
+      scene.add(replayGroup);
+
+      const vehicle = new THREE.Mesh(
+        new THREE.ConeGeometry(0.28, 0.9, 24),
+        new THREE.MeshStandardMaterial({ color: 0xffffff, emissive: 0x182848, metalness: 0.45, roughness: 0.28 })
+      );
+      vehicle.rotation.z = -Math.PI / 2;
+      scene.add(vehicle);
+
+      let currentReplay = defaultReplay;
+      let currentFrameIndex = 0;
+      let markerMeshes = [];
+
+      function toVector(position) {
+        return new THREE.Vector3(position.x, position.z, position.y);
+      }
+
+      function material(color, opacity = 1) {
+        return new THREE.MeshStandardMaterial({
+          color,
+          transparent: opacity < 1,
+          opacity,
+          roughness: 0.55,
+          metalness: 0.05,
+        });
+      }
+
+      function lineMaterial(color) {
+        return new THREE.LineBasicMaterial({ color, transparent: true, opacity: 0.95 });
       }
 
       function markerColor(frame) {
-        const severities = frame.active_markers.map((marker) => marker.severity);
-        if (frame.is_primary_violation_frame) return "#ffb86b";
-        if (severities.includes("critical")) return "#ff6b6b";
-        if (severities.includes("review")) return "#ffd166";
-        return "#7fa8ff";
+        const severities = (frame.active_markers || []).map((marker) => marker.severity);
+        if (frame.is_primary_violation_frame) return 0xffb86b;
+        if (severities.includes("critical")) return 0xff6b6b;
+        if (severities.includes("review")) return 0xffd166;
+        return 0x7fa8ff;
+      }
+
+      function clearReplayGroup() {
+        while (replayGroup.children.length) {
+          replayGroup.remove(replayGroup.children[0]);
+        }
+        markerMeshes = [];
+      }
+
+      function addConstraintGeometry() {
+        const sphere = new THREE.Mesh(
+          new THREE.SphereGeometry(2, 48, 24),
+          material(0xffb86b, 0.12)
+        );
+        sphere.name = "protected-volume";
+        replayGroup.add(sphere);
+
+        const sphereWire = new THREE.LineSegments(
+          new THREE.WireframeGeometry(new THREE.SphereGeometry(2, 32, 16)),
+          new THREE.LineBasicMaterial({ color: 0xffb86b, transparent: true, opacity: 0.55 })
+        );
+        replayGroup.add(sphereWire);
+
+        const corridor = new THREE.Mesh(
+          new THREE.BoxGeometry(11, 0.35, 5),
+          material(0x7fa8ff, 0.1)
+        );
+        corridor.position.set(5.5, 0, 0);
+        corridor.name = "approach-corridor";
+        replayGroup.add(corridor);
+
+        const corridorWire = new THREE.LineSegments(
+          new THREE.WireframeGeometry(new THREE.BoxGeometry(11, 0.35, 5)),
+          new THREE.LineBasicMaterial({ color: 0x7fa8ff, transparent: true, opacity: 0.45 })
+        );
+        corridorWire.position.copy(corridor.position);
+        replayGroup.add(corridorWire);
+      }
+
+      function addPath(frames) {
+        const points = frames.map((frame) => toVector(frame.position));
+        const geometry = new THREE.BufferGeometry().setFromPoints(points);
+        const pathLine = new THREE.Line(geometry, lineMaterial(0x7fa8ff));
+        pathLine.name = "replay-path-line";
+        replayGroup.add(pathLine);
+      }
+
+      function addFrameMarkers(frames) {
+        frames.forEach((frame, index) => {
+          const color = markerColor(frame);
+          const radius = frame.is_primary_violation_frame ? 0.26 : (frame.active_markers || []).length ? 0.2 : 0.13;
+          const mesh = new THREE.Mesh(
+            new THREE.SphereGeometry(radius, 24, 16),
+            material(color, 1)
+          );
+          mesh.position.copy(toVector(frame.position));
+          mesh.userData = { frame, index };
+          mesh.name = frame.is_primary_violation_frame ? "primary-violation-marker" : "replay-frame-marker";
+          replayGroup.add(mesh);
+          markerMeshes.push(mesh);
+        });
       }
 
       function renderReplay(replay) {
         currentReplay = replay;
-        const pathLayer = document.getElementById("path-layer");
-        const markerLayer = document.getElementById("marker-layer");
-        pathLayer.innerHTML = "";
-        markerLayer.innerHTML = "";
+        currentFrameIndex = 0;
+        clearReplayGroup();
+        addConstraintGeometry();
+        addPath(replay.frames);
+        addFrameMarkers(replay.frames);
+        configureTimeline(replay.frames);
+        updateDecisionPanel(replay);
+        focusFrame(replay.frames.findIndex((frame) => frame.is_primary_violation_frame) >= 0 ? replay.frames.findIndex((frame) => frame.is_primary_violation_frame) : 0);
+      }
 
-        const points = replay.frames.map((frame) => project(frame.position));
-        const polyline = document.createElementNS("http://www.w3.org/2000/svg", "polyline");
-        polyline.setAttribute("points", points.map((point) => `${point.x},${point.y}`).join(" "));
-        polyline.setAttribute("fill", "none");
-        polyline.setAttribute("stroke", "rgba(127, 168, 255, 0.95)");
-        polyline.setAttribute("stroke-width", "4");
-        polyline.setAttribute("stroke-linecap", "round");
-        polyline.setAttribute("stroke-linejoin", "round");
-        pathLayer.appendChild(polyline);
+      function configureTimeline(frames) {
+        const timeline = document.getElementById("timeline");
+        timeline.min = 0;
+        timeline.max = Math.max(0, frames.length - 1);
+        timeline.value = 0;
+      }
 
-        replay.frames.forEach((frame) => {
-          const point = project(frame.position);
-          const group = document.createElementNS("http://www.w3.org/2000/svg", "g");
-          group.setAttribute("tabindex", "0");
-          group.setAttribute("role", "button");
-          group.style.cursor = "pointer";
-          group.addEventListener("click", () => showFrameDetails(frame));
-
-          const dot = document.createElementNS("http://www.w3.org/2000/svg", "circle");
-          dot.setAttribute("cx", point.x);
-          dot.setAttribute("cy", point.y);
-          dot.setAttribute("r", frame.is_primary_violation_frame ? "12" : frame.active_markers.length ? "9" : "6");
-          dot.setAttribute("fill", markerColor(frame));
-          dot.setAttribute("stroke", "#05070d");
-          dot.setAttribute("stroke-width", "3");
-          group.appendChild(dot);
-
-          const label = document.createElementNS("http://www.w3.org/2000/svg", "text");
-          label.setAttribute("x", point.x + 12);
-          label.setAttribute("y", point.y - 12);
-          label.setAttribute("fill", "#dbe7ff");
-          label.setAttribute("font-size", "12");
-          label.textContent = `T+${frame.t}s`;
-          group.appendChild(label);
-
-          markerLayer.appendChild(group);
-        });
-
+      function updateDecisionPanel(replay) {
         document.getElementById("decision").textContent = replay.decision;
         document.getElementById("severity").textContent = replay.highest_severity ? `Severity: ${replay.highest_severity.toUpperCase()}` : "";
         document.getElementById("primary").textContent = replay.primary_rule_id
           ? `Primary: ${replay.primary_rule_id} at T+${replay.primary_violation_time}s`
           : "No primary violation.";
         document.getElementById("primary-recommendation").textContent = replay.primary_recommendation || "";
-        const primaryFrame = replay.frames.find((frame) => frame.is_primary_violation_frame) || replay.frames[0];
-        showFrameDetails(primaryFrame);
       }
 
       function showFrameDetails(frame) {
@@ -257,6 +380,48 @@
         document.getElementById("frame-details").textContent = JSON.stringify(detail, null, 2);
       }
 
+      function focusFrame(index) {
+        if (index < 0 || index >= currentReplay.frames.length) return;
+        currentFrameIndex = index;
+        const frame = currentReplay.frames[index];
+        const position = toVector(frame.position);
+        vehicle.position.copy(position);
+        vehicle.rotation.set(
+          THREE.MathUtils.degToRad(frame.attitude_deg.x),
+          THREE.MathUtils.degToRad(frame.attitude_deg.z),
+          THREE.MathUtils.degToRad(frame.attitude_deg.y) - Math.PI / 2
+        );
+        controls.target.copy(position);
+        document.getElementById("timeline").value = index;
+        document.getElementById("timeline-label").textContent = `T+${frame.t}s`;
+        showFrameDetails(frame);
+      }
+
+      function onResize() {
+        const width = root.clientWidth;
+        const height = root.clientHeight;
+        camera.aspect = width / height;
+        camera.updateProjectionMatrix();
+        renderer.setSize(width, height);
+      }
+
+      const raycaster = new THREE.Raycaster();
+      const pointer = new THREE.Vector2();
+      renderer.domElement.addEventListener("click", (event) => {
+        const rect = renderer.domElement.getBoundingClientRect();
+        pointer.x = ((event.clientX - rect.left) / rect.width) * 2 - 1;
+        pointer.y = -((event.clientY - rect.top) / rect.height) * 2 + 1;
+        raycaster.setFromCamera(pointer, camera);
+        const hits = raycaster.intersectObjects(markerMeshes);
+        if (hits.length) {
+          focusFrame(hits[0].object.userData.index);
+        }
+      });
+
+      document.getElementById("timeline").addEventListener("input", (event) => {
+        focusFrame(Number(event.target.value));
+      });
+
       document.getElementById("file-input").addEventListener("change", async (event) => {
         const file = event.target.files[0];
         if (!file) return;
@@ -265,11 +430,20 @@
       });
 
       document.getElementById("focus-primary").addEventListener("click", () => {
-        const primaryFrame = currentReplay.frames.find((frame) => frame.is_primary_violation_frame);
-        if (primaryFrame) showFrameDetails(primaryFrame);
+        const primaryIndex = currentReplay.frames.findIndex((frame) => frame.is_primary_violation_frame);
+        if (primaryIndex >= 0) focusFrame(primaryIndex);
       });
 
+      function animate() {
+        requestAnimationFrame(animate);
+        controls.update();
+        renderer.render(scene, camera);
+      }
+
+      window.addEventListener("resize", onResize);
+      onResize();
       renderReplay(defaultReplay);
+      animate();
     </script>
   </body>
 </html>
