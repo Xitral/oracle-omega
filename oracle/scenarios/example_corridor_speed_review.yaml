@@ -1,0 +1,18 @@
+id: example-corridor-speed-review
+name: Corridor and speed review demo
+family: example
+parameters:
+  description: A path that remains outside the central volume but drifts outside the corridor and moves too quickly.
+planned_path:
+  - t: 0
+    position: {x: 10.0, y: 0.0, z: 0.0}
+    attitude_deg: {x: 0.0, y: 0.0, z: 0.0}
+  - t: 5
+    position: {x: 7.0, y: 3.2, z: 0.0}
+    attitude_deg: {x: 0.0, y: 0.0, z: 0.0}
+  - t: 10
+    position: {x: 3.5, y: 3.6, z: 0.0}
+    attitude_deg: {x: 0.0, y: 0.0, z: 0.0}
+  - t: 15
+    position: {x: 2.6, y: 3.1, z: 0.0}
+    attitude_deg: {x: 0.0, y: 0.0, z: 0.0}
