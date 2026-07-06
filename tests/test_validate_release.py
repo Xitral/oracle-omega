@@ -11,6 +11,7 @@ def test_release_validation_harness_passes_core_gates():
         "robustness-bundles",
         "experiment-run",
         "experiment-index",
+        "batch-benchmark",
         "theater-contracts",
     }
     assert all(check.passed for check in report.checks)
