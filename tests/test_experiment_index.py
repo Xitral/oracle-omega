@@ -49,12 +49,15 @@ def test_experiment_index_collects_manifest_and_robustness_metrics(tmp_path: Pat
     assert fragile.original_failure_probability is not None
     assert fragile.original_failure_probability > 0.0
     assert fragile.repaired_failure_probability is None
+    assert fragile.selected_sigma_buffer is None
     assert fragile.most_common_failure == "PATH-CORRIDOR-001"
     assert fragile.tags == ["fragile"]
 
     assert repair.original_failure_probability == 1.0
     assert repair.repaired_failure_probability == 0.0
     assert repair.absolute_risk_reduction == 1.0
+    assert repair.selected_sigma_buffer is not None
+    assert repair.target_failure_probability == 0.01
     assert repair.tags == ["repair"]
 
 
@@ -80,6 +83,7 @@ def test_experiment_index_writes_json_and_markdown_summary(tmp_path: Path):
     assert "ORACLE-Omega Experiment Index" in summary
     assert "repair-summary-run" in summary
     assert "Risk reduction" in summary
+    assert "Sigma buffer" in summary
     assert "1.000" in summary
 
 
