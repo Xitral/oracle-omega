@@ -61,3 +61,44 @@ def speed_target(max_speed: float) -> float:
 
 def clearance_target(radius: float, sigma: float) -> float:
     return radius + radius * 0.1 + SIGMA_BUFFER * sigma
+
+
+def clamp_corridor_with_buffer(scenario: Scenario, max_offset: float, sigma: float) -> None:
+    target = corridor_target(max_offset, sigma)
+    for sample in scenario.planned_path:
+        lateral = math.sqrt(sample.position.y**2 + sample.position.z**2)
+        if lateral <= target or lateral <= EPSILON:
+            continue
+        scale = target / lateral
+        sample.position.y *= scale
+        sample.position.z *= scale
+
+
+def push_clearance_with_buffer(scenario: Scenario, center: Vec3, radius: float, sigma: float) -> None:
+    target = clearance_target(radius, sigma)
+    for sample in scenario.planned_path:
+        value = distance(sample.position, center)
+        if value >= target:
+            continue
+        if value <= EPSILON:
+            sample.position.x = center.x + target
+            sample.position.y = center.y
+            sample.position.z = center.z
+            continue
+        scale = target / value
+        sample.position.x = center.x + (sample.position.x - center.x) * scale
+        sample.position.y = center.y + (sample.position.y - center.y) * scale
+        sample.position.z = center.z + (sample.position.z - center.z) * scale
+
+
+def retime_speed_with_buffer(scenario: Scenario, max_speed: float, sigma_t: float) -> None:
+    if len(scenario.planned_path) < 2:
+        return
+    target = speed_target(max_speed)
+    padding = SIGMA_BUFFER * sigma_t
+    scenario.planned_path[0].t = 0.0
+    for previous, current in zip(scenario.planned_path, scenario.planned_path[1:]):
+        segment_distance = distance(previous.position, current.position)
+        required_dt = segment_distance / target if segment_distance > 0 else 0.001
+        original_dt = max(current.t - previous.t, 0.001)
+        current.t = previous.t + max(original_dt, required_dt + padding)
