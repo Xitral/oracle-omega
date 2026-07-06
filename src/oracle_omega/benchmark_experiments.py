@@ -9,6 +9,7 @@ from src.oracle_omega.benchmark_analytics import (
     build_benchmark_analytics,
     write_analytics_outputs,
 )
+from src.oracle_omega.benchmark_claims import BenchmarkClaimsReport, build_benchmark_claims, write_claim_outputs
 from src.oracle_omega.core.models import Decision
 from src.oracle_omega.experiment import ExperimentManifest, run_experiment, slugify
 from src.oracle_omega.experiment_index import ExperimentIndex, build_experiment_index, write_index_outputs
@@ -43,10 +44,13 @@ class BenchmarkExperimentSummary(BaseModel):
     summary_path: str
     analytics_path: str
     analytics_summary_path: str
+    claims_path: str
+    claims_summary_path: str
     generated: list[BenchmarkExperimentRun] = Field(default_factory=list)
     skipped: list[BenchmarkSkippedCase] = Field(default_factory=list)
     index: ExperimentIndex
     analytics: BenchmarkAnalyticsReport
+    claims: BenchmarkClaimsReport
 
 
 def run_id_for_scenario(scenario_id: str) -> str:
@@ -73,6 +77,8 @@ def run_benchmark_experiments(
     summary_path: str | Path | None = None,
     analytics_path: str | Path | None = None,
     analytics_summary_path: str | Path | None = None,
+    claims_path: str | Path | None = None,
+    claims_summary_path: str | Path | None = None,
     repair_success_threshold: float = 0.05,
 ) -> BenchmarkExperimentSummary:
     suite = Path(suite_root)
@@ -84,6 +90,8 @@ def run_benchmark_experiments(
     analytics_summary_out = (
         Path(analytics_summary_path) if analytics_summary_path is not None else out / "benchmark-analytics.md"
     )
+    claims_out = Path(claims_path) if claims_path is not None else out / "benchmark-claims.json"
+    claims_summary_out = Path(claims_summary_path) if claims_summary_path is not None else out / "benchmark-claims.md"
     rules = read_rule_file(rules_path)
 
     generated: list[BenchmarkExperimentRun] = []
@@ -130,6 +138,8 @@ def run_benchmark_experiments(
         benchmark_only=True,
     )
     write_analytics_outputs(analytics, analytics_out, analytics_summary_out)
+    claims = build_benchmark_claims(analytics)
+    write_claim_outputs(claims, claims_out, claims_summary_out)
 
     return BenchmarkExperimentSummary(
         suite_root=str(suite).replace("\\", "/"),
@@ -140,8 +150,11 @@ def run_benchmark_experiments(
         summary_path=str(summary_out).replace("\\", "/"),
         analytics_path=str(analytics_out).replace("\\", "/"),
         analytics_summary_path=str(analytics_summary_out).replace("\\", "/"),
+        claims_path=str(claims_out).replace("\\", "/"),
+        claims_summary_path=str(claims_summary_out).replace("\\", "/"),
         generated=generated,
         skipped=skipped,
         index=index,
         analytics=analytics,
+        claims=claims,
     )
