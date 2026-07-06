@@ -1,6 +1,6 @@
 id: example-corridor-speed-review
 name: Corridor and speed review demo
-family: example
+family: close_approach
 parameters:
   description: A path that remains outside the central volume but drifts outside the corridor and moves too quickly.
 planned_path:
