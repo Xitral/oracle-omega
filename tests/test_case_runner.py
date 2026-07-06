@@ -12,23 +12,45 @@ CASE_B = ROOT / "oracle" / "scenarios" / "example_path_review.yaml"
 CASE_C = ROOT / "oracle" / "scenarios" / "example_corridor_speed_review.yaml"
 
 
-def test_case_a_returns_allow():
+def result_ids(evidence):
+    return {item.rule_id for item in evidence.results}
+
+
+def failed_ids(evidence):
+    return {item.rule_id for item in evidence.results if not item.passed}
+
+
+def test_close_approach_pass_uses_close_approach_checks():
     evidence = review(read_scenario(CASE_A), read_rule_file(ITEMS))
 
     assert evidence.decision == Decision.ALLOW
+    assert result_ids(evidence) == {
+        "APPROACH-CLEARANCE-001",
+        "PATH-CORRIDOR-001",
+        "PATH-SPEED-001",
+    }
     assert all(item.passed for item in evidence.results)
 
 
-def test_case_b_returns_review():
+def test_surface_landing_review_uses_surface_checks():
     evidence = review(read_scenario(CASE_B), read_rule_file(ITEMS))
 
     assert evidence.decision == Decision.REQUIRE_REVIEW
-    assert sum(1 for item in evidence.results if not item.passed) == 2
+    assert result_ids(evidence) == {
+        "APPROACH-CLEARANCE-001",
+        "LANDING-TILT-001",
+        "PATH-SPEED-001",
+    }
+    assert failed_ids(evidence) == {"APPROACH-CLEARANCE-001", "LANDING-TILT-001"}
 
 
-def test_case_c_flags_corridor_and_speed():
+def test_close_approach_review_flags_corridor_and_speed():
     evidence = review(read_scenario(CASE_C), read_rule_file(ITEMS))
 
     assert evidence.decision == Decision.REQUIRE_REVIEW
-    failed_ids = {item.rule_id for item in evidence.results if not item.passed}
-    assert failed_ids == {"PATH-CORRIDOR-001", "PATH-SPEED-001"}
+    assert result_ids(evidence) == {
+        "APPROACH-CLEARANCE-001",
+        "PATH-CORRIDOR-001",
+        "PATH-SPEED-001",
+    }
+    assert failed_ids(evidence) == {"PATH-CORRIDOR-001", "PATH-SPEED-001"}
