@@ -87,3 +87,26 @@ class ReplayBundle(BaseModel):
     primary_recommendation: str | None = None
     highest_severity: str = "nominal"
     frames: list[ReplayFrame]
+
+
+class RepairCandidate(BaseModel):
+    available: bool
+    strategy: str
+    fixed_rules: list[str] = Field(default_factory=list)
+    remaining_failures: list[str] = Field(default_factory=list)
+    original_failed_count: int
+    repaired_failed_count: int
+    original_highest_severity: str
+    repaired_highest_severity: str
+    path_delta_score: float
+    modified_frame_count: int
+    repaired_scenario: Scenario | None = None
+    repaired_evidence: EvidenceCard | None = None
+
+
+class CounterfactualReplayBundle(BaseModel):
+    scenario_id: str
+    strategy: str
+    repair_candidate: RepairCandidate
+    original_replay: ReplayBundle
+    repaired_replay: ReplayBundle | None = None
