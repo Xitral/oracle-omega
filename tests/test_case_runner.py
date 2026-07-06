@@ -9,6 +9,7 @@ ROOT = Path(__file__).resolve().parents[1]
 ITEMS = ROOT / "oracle" / "rules" / "starter_rules.yaml"
 CASE_A = ROOT / "oracle" / "scenarios" / "example_path_pass.yaml"
 CASE_B = ROOT / "oracle" / "scenarios" / "example_path_review.yaml"
+CASE_C = ROOT / "oracle" / "scenarios" / "example_corridor_speed_review.yaml"
 
 
 def test_case_a_returns_allow():
@@ -23,3 +24,11 @@ def test_case_b_returns_review():
 
     assert evidence.decision == Decision.REQUIRE_REVIEW
     assert sum(1 for item in evidence.results if not item.passed) == 2
+
+
+def test_case_c_flags_corridor_and_speed():
+    evidence = review(read_scenario(CASE_C), read_rule_file(ITEMS))
+
+    assert evidence.decision == Decision.REQUIRE_REVIEW
+    failed_ids = {item.rule_id for item in evidence.results if not item.passed}
+    assert failed_ids == {"PATH-CORRIDOR-001", "PATH-SPEED-001"}
