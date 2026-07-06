@@ -1,0 +1,27 @@
+[project]
+name = "oracle-omega"
+version = "0.1.0"
+description = "Simulation-only 3D spatial assurance research prototype."
+readme = "README.md"
+requires-python = ">=3.11"
+dependencies = [
+  "fastapi>=0.115.0",
+  "uvicorn[standard]>=0.30.0",
+  "pydantic>=2.8.0",
+  "pyyaml>=6.0.0"
+]
+
+[project.optional-dependencies]
+dev = [
+  "pytest>=8.0.0",
+  "ruff>=0.5.0",
+  "mypy>=1.10.0"
+]
+
+[tool.ruff]
+line-length = 100
+src = ["oracle", "apps/api", "tests"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["."]
