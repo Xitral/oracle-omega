@@ -15,9 +15,10 @@ build/
 .next/
 .vite/
 
-# Logs and generated replays
+# Generated outputs
 data/logs/*.jsonl
 data/replays/*.json
+data/reports/*.json
 
 # OS/editor
 .DS_Store
