@@ -1,0 +1,11 @@
+rules:
+  - id: APPROACH-CLEARANCE-001
+    type: radius_clearance
+    center: {x: 0.0, y: 0.0, z: 0.0}
+    radius: 2.0
+    reason: Planned path enters the protected central volume.
+
+  - id: LANDING-TILT-001
+    type: tilt_limit
+    max_deg: 8.0
+    reason: Planned touchdown attitude exceeds the demo tilt limit.
