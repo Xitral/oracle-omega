@@ -9,7 +9,7 @@ from src.oracle_omega.reviewer import applies_to_family, review
 from src.oracle_omega.spatial.checks import distance
 
 BUFFERED_REPAIR_STRATEGY = "uncertainty_buffered_repair_v1"
-SIGMA_BUFFER = 3.0
+DEFAULT_SIGMA_BUFFER = 3.0
 EPSILON = 1e-6
 
 
@@ -47,34 +47,34 @@ def time_sigma(scenario: Scenario) -> float:
     return float(raw_uncertainty(scenario).get("timing_sigma", 0.0))
 
 
-def copy_for_buffered_repair(scenario: Scenario) -> Scenario:
+def copy_for_buffered_repair(scenario: Scenario, sigma_buffer: float) -> Scenario:
     return Scenario(
         id=f"{scenario.id}-buffered-repair",
         name=f"{scenario.name} Buffered Repair Candidate",
         family=scenario.family,
         planned_path=[sample.model_copy(deep=True) for sample in scenario.planned_path],
-        parameters={**scenario.parameters, "repair_strategy": BUFFERED_REPAIR_STRATEGY},
+        parameters={**scenario.parameters, "repair_strategy": BUFFERED_REPAIR_STRATEGY, "sigma_buffer": sigma_buffer},
     )
 
 
-def corridor_target(max_offset: float, sigma: float) -> float:
-    return min(max_offset * 0.85, max(max_offset * 0.25, max_offset - SIGMA_BUFFER * sigma))
+def corridor_target(max_offset: float, sigma: float, sigma_buffer: float) -> float:
+    return min(max_offset * 0.85, max(max_offset * 0.25, max_offset - sigma_buffer * sigma))
 
 
-def speed_target(max_speed: float) -> float:
-    return max_speed * 0.72
+def speed_target(max_speed: float, sigma_buffer: float) -> float:
+    return max(max_speed * 0.45, max_speed * (1.0 - 0.08 * sigma_buffer))
 
 
-def clearance_target(radius: float, sigma: float) -> float:
-    return radius + radius * 0.1 + SIGMA_BUFFER * sigma
+def clearance_target(radius: float, sigma: float, sigma_buffer: float) -> float:
+    return radius + radius * 0.1 + sigma_buffer * sigma
 
 
-def tilt_target(max_deg: float, sigma: float) -> float:
-    return min(max_deg * 0.85, max(0.0, max_deg - SIGMA_BUFFER * sigma))
+def tilt_target(max_deg: float, sigma: float, sigma_buffer: float) -> float:
+    return min(max_deg * 0.85, max(0.0, max_deg - sigma_buffer * sigma))
 
 
-def clamp_corridor_with_buffer(scenario: Scenario, max_offset: float, sigma: float) -> None:
-    target = corridor_target(max_offset, sigma)
+def clamp_corridor_with_buffer(scenario: Scenario, max_offset: float, sigma: float, sigma_buffer: float) -> None:
+    target = corridor_target(max_offset, sigma, sigma_buffer)
     for sample in scenario.planned_path:
         lateral = math.sqrt(sample.position.y**2 + sample.position.z**2)
         if lateral <= target or lateral <= EPSILON:
@@ -84,8 +84,8 @@ def clamp_corridor_with_buffer(scenario: Scenario, max_offset: float, sigma: flo
         sample.position.z *= scale
 
 
-def push_clearance_with_buffer(scenario: Scenario, center: Vec3, radius: float, sigma: float) -> None:
-    target = clearance_target(radius, sigma)
+def push_clearance_with_buffer(scenario: Scenario, center: Vec3, radius: float, sigma: float, sigma_buffer: float) -> None:
+    target = clearance_target(radius, sigma, sigma_buffer)
     for sample in scenario.planned_path:
         value = distance(sample.position, center)
         if value >= target:
@@ -101,18 +101,18 @@ def push_clearance_with_buffer(scenario: Scenario, center: Vec3, radius: float, 
         sample.position.z = center.z + (sample.position.z - center.z) * scale
 
 
-def clamp_tilt_with_buffer(scenario: Scenario, max_deg: float, sigma: float) -> None:
-    target = tilt_target(max_deg, sigma)
+def clamp_tilt_with_buffer(scenario: Scenario, max_deg: float, sigma: float, sigma_buffer: float) -> None:
+    target = tilt_target(max_deg, sigma, sigma_buffer)
     for sample in scenario.planned_path:
         sample.attitude_deg.x = max(-target, min(target, sample.attitude_deg.x))
         sample.attitude_deg.y = max(-target, min(target, sample.attitude_deg.y))
 
 
-def retime_speed_with_buffer(scenario: Scenario, max_speed: float, sigma_t: float) -> None:
+def retime_speed_with_buffer(scenario: Scenario, max_speed: float, sigma_t: float, sigma_buffer: float) -> None:
     if len(scenario.planned_path) < 2:
         return
-    target = speed_target(max_speed)
-    padding = SIGMA_BUFFER * sigma_t
+    target = speed_target(max_speed, sigma_buffer)
+    padding = sigma_buffer * sigma_t
     scenario.planned_path[0].t = 0.0
     for previous, current in zip(scenario.planned_path, scenario.planned_path[1:]):
         segment_distance = distance(previous.position, current.position)
@@ -121,8 +121,12 @@ def retime_speed_with_buffer(scenario: Scenario, max_speed: float, sigma_t: floa
         current.t = previous.t + max(original_dt, required_dt + padding)
 
 
-def apply_buffered_repair(scenario: Scenario, rule_items: list[dict]) -> Scenario:
-    repaired = copy_for_buffered_repair(scenario)
+def apply_buffered_repair(
+    scenario: Scenario,
+    rule_items: list[dict],
+    sigma_buffer: float = DEFAULT_SIGMA_BUFFER,
+) -> Scenario:
+    repaired = copy_for_buffered_repair(scenario, sigma_buffer)
     rules = applicable_rules(rule_items, repaired)
     sigma = lateral_sigma(scenario)
 
@@ -134,19 +138,20 @@ def apply_buffered_repair(scenario: Scenario, rule_items: list[dict]) -> Scenari
             Vec3(x=float(center["x"]), y=float(center["y"]), z=float(center["z"])),
             float(radius_rule["radius"]),
             sigma,
+            sigma_buffer,
         )
 
     corridor_rule = first_rule(rules, "corridor_limit")
     if corridor_rule is not None:
-        clamp_corridor_with_buffer(repaired, float(corridor_rule["max_offset"]), sigma)
+        clamp_corridor_with_buffer(repaired, float(corridor_rule["max_offset"]), sigma, sigma_buffer)
 
     tilt_rule = first_rule(rules, "tilt_limit")
     if tilt_rule is not None:
-        clamp_tilt_with_buffer(repaired, float(tilt_rule["max_deg"]), attitude_sigma(scenario))
+        clamp_tilt_with_buffer(repaired, float(tilt_rule["max_deg"]), attitude_sigma(scenario), sigma_buffer)
 
     speed_rule = first_rule(rules, "speed_limit")
     if speed_rule is not None:
-        retime_speed_with_buffer(repaired, float(speed_rule["max_speed"]), time_sigma(scenario))
+        retime_speed_with_buffer(repaired, float(speed_rule["max_speed"]), time_sigma(scenario), sigma_buffer)
 
     return repaired
 
@@ -155,6 +160,7 @@ def build_buffered_repair_candidate(
     scenario: Scenario,
     rule_items: list[dict],
     original_evidence: EvidenceCard | None = None,
+    sigma_buffer: float = DEFAULT_SIGMA_BUFFER,
 ) -> RepairCandidate:
     original = original_evidence if original_evidence is not None else review(scenario, rule_items)
     if original.failed_count == 0:
@@ -171,7 +177,7 @@ def build_buffered_repair_candidate(
             modified_frame_count=0,
         )
 
-    repaired = apply_buffered_repair(scenario, rule_items)
+    repaired = apply_buffered_repair(scenario, rule_items, sigma_buffer=sigma_buffer)
     repaired_evidence = review(repaired, rule_items)
     original_failures = failed_rule_ids(original)
     repaired_failures = failed_rule_ids(repaired_evidence)
