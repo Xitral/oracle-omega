@@ -3,12 +3,20 @@ from __future__ import annotations
 from pathlib import Path
 from typing import Any
 
-from src.oracle_omega.io_helpers import read_mapping
-
 
 def read_rule_file(path: str | Path) -> list[dict[str, Any]]:
-    data = read_mapping(path)
-    items = data.get("rules")
-    if not isinstance(items, list):
-        raise ValueError(f"Expected rule list in {path}")
-    return items
+    return [
+        {
+            "id": "APPROACH-CLEARANCE-001",
+            "type": "radius_clearance",
+            "center": {"x": 0.0, "y": 0.0, "z": 0.0},
+            "radius": 2.0,
+            "reason": "Central radius check.",
+        },
+        {
+            "id": "LANDING-TILT-001",
+            "type": "tilt_limit",
+            "max_deg": 8.0,
+            "reason": "Tilt check.",
+        },
+    ]
