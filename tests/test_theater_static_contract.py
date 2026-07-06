@@ -8,7 +8,11 @@ def test_theater_contains_3d_scene_contract():
     html = THEATER.read_text(encoding="utf-8")
 
     assert "scene-root" in html
+    assert "importmap" in html
     assert "three.module.js" in html
+    assert "three/addons/" in html
+    assert 'from "three"' in html
+    assert 'from "three/addons/controls/OrbitControls.js"' in html
     assert "OrbitControls" in html
     assert "WebGLRenderer" in html
     assert "PerspectiveCamera" in html
