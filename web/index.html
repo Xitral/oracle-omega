@@ -81,6 +81,11 @@
         color: #b9fbc0;
         font-weight: 700;
       }
+      .severity {
+        color: #ff6b6b;
+        font-weight: 700;
+        letter-spacing: 0.05em;
+      }
       code {
         color: #ffb86b;
         word-break: break-word;
@@ -138,6 +143,7 @@
         <section class="card">
           <h2>Decision</h2>
           <p id="decision" class="decision">No replay loaded</p>
+          <p id="severity" class="severity"></p>
           <p id="primary"></p>
           <p id="primary-recommendation" class="recommendation"></p>
         </section>
@@ -155,13 +161,14 @@
         scenario_id: "example-corridor-speed-review",
         scenario_family: "close_approach",
         decision: "REQUIRE_REVIEW",
+        highest_severity: "critical",
         primary_rule_id: "PATH-SPEED-001",
         primary_violation_time: 5,
         primary_recommendation: "Reduce segment speed and regenerate the path preview before continuing.",
         frames: [
           { t: 0, position: { x: 10, y: 0, z: 0 }, attitude_deg: { x: 0, y: 0, z: 0 }, active_markers: [], is_primary_violation_frame: false },
-          { t: 5, position: { x: 7, y: 3.2, z: 0 }, attitude_deg: { x: 0, y: 0, z: 0 }, active_markers: [{ rule_id: "PATH-SPEED-001", t: 5, label: "Path segment speed check.", severity: "review", recommendation: "Reduce segment speed and regenerate the path preview before continuing." }], is_primary_violation_frame: true },
-          { t: 10, position: { x: 3.5, y: 3.6, z: 0 }, attitude_deg: { x: 0, y: 0, z: 0 }, active_markers: [{ rule_id: "PATH-CORRIDOR-001", t: 10, label: "Path corridor offset check.", severity: "review", recommendation: "Re-center the path inside the approach corridor before continuing." }], is_primary_violation_frame: false },
+          { t: 5, position: { x: 7, y: 3.2, z: 0 }, attitude_deg: { x: 0, y: 0, z: 0 }, active_markers: [{ rule_id: "PATH-SPEED-001", t: 5, label: "Path segment speed check.", severity: "critical", recommendation: "Reduce segment speed and regenerate the path preview before continuing.", safety_margin: -0.22726848797845248, normalized_margin: -0.34964382765915764 }], is_primary_violation_frame: true },
+          { t: 10, position: { x: 3.5, y: 3.6, z: 0 }, attitude_deg: { x: 0, y: 0, z: 0 }, active_markers: [{ rule_id: "PATH-CORRIDOR-001", t: 10, label: "Path corridor offset check.", severity: "critical", recommendation: "Re-center the path inside the approach corridor before continuing.", safety_margin: -1.1, normalized_margin: -0.44000000000000006 }], is_primary_violation_frame: false },
           { t: 15, position: { x: 2.6, y: 3.1, z: 0 }, attitude_deg: { x: 0, y: 0, z: 0 }, active_markers: [], is_primary_violation_frame: false }
         ]
       };
@@ -175,6 +182,14 @@
           x: origin.x + position.x * scale,
           y: origin.y - position.y * scale
         };
+      }
+
+      function markerColor(frame) {
+        const severities = frame.active_markers.map((marker) => marker.severity);
+        if (frame.is_primary_violation_frame) return "#ffb86b";
+        if (severities.includes("critical")) return "#ff6b6b";
+        if (severities.includes("review")) return "#ffd166";
+        return "#7fa8ff";
       }
 
       function renderReplay(replay) {
@@ -206,7 +221,7 @@
           dot.setAttribute("cx", point.x);
           dot.setAttribute("cy", point.y);
           dot.setAttribute("r", frame.is_primary_violation_frame ? "12" : frame.active_markers.length ? "9" : "6");
-          dot.setAttribute("fill", frame.is_primary_violation_frame ? "#ffb86b" : frame.active_markers.length ? "#ff6b6b" : "#7fa8ff");
+          dot.setAttribute("fill", markerColor(frame));
           dot.setAttribute("stroke", "#05070d");
           dot.setAttribute("stroke-width", "3");
           group.appendChild(dot);
@@ -223,6 +238,7 @@
         });
 
         document.getElementById("decision").textContent = replay.decision;
+        document.getElementById("severity").textContent = replay.highest_severity ? `Severity: ${replay.highest_severity.toUpperCase()}` : "";
         document.getElementById("primary").textContent = replay.primary_rule_id
           ? `Primary: ${replay.primary_rule_id} at T+${replay.primary_violation_time}s`
           : "No primary violation.";
