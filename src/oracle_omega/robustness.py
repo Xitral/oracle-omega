@@ -5,6 +5,7 @@ from collections import Counter
 from enum import Enum
 from typing import Any
 
+from src.oracle_omega.buffered_repair import build_buffered_repair_candidate
 from src.oracle_omega.core.models import (
     AdversarialCase,
     Decision,
@@ -17,7 +18,6 @@ from src.oracle_omega.core.models import (
     UncertaintyConfig,
     Vec3,
 )
-from src.oracle_omega.repair import build_repair_candidate
 from src.oracle_omega.reviewer import review
 
 SEVERITY_RANK = {"nominal": 0, "review": 1, "critical": 2}
@@ -250,7 +250,7 @@ def compare_repaired_robustness(
     original_summary: MonteCarloSummary,
 ) -> RepairRobustnessComparison:
     nominal = review(scenario, rule_items)
-    repair = build_repair_candidate(scenario, rule_items, nominal)
+    repair = build_buffered_repair_candidate(scenario, rule_items, nominal)
     if not repair.available or repair.repaired_scenario is None:
         return RepairRobustnessComparison(
             repair_available=False,
