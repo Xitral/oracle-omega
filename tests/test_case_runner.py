@@ -29,7 +29,7 @@ def test_close_approach_pass_uses_close_approach_checks():
 
     assert evidence.decision == Decision.ALLOW
     assert evidence.scenario_family == "close_approach"
-    assert evidence.checked_count == 3
+    assert evidence.checked_count == 4
     assert evidence.failed_count == 0
     assert evidence.highest_severity == "nominal"
     assert evidence.primary_rule_id is None
@@ -39,6 +39,7 @@ def test_close_approach_pass_uses_close_approach_checks():
         "APPROACH-CLEARANCE-001",
         "PATH-CORRIDOR-001",
         "PATH-SPEED-001",
+        "PATH-ACCEL-001",
     }
     assert all(item.passed for item in evidence.results)
     assert all(item.recommendation is None for item in evidence.results)
@@ -50,7 +51,7 @@ def test_surface_landing_review_uses_surface_checks():
 
     assert evidence.decision == Decision.REQUIRE_REVIEW
     assert evidence.scenario_family == "surface_landing"
-    assert evidence.checked_count == 3
+    assert evidence.checked_count == 4
     assert evidence.failed_count == 2
     assert evidence.highest_severity == "critical"
     assert evidence.primary_rule_id == "APPROACH-CLEARANCE-001"
@@ -60,6 +61,7 @@ def test_surface_landing_review_uses_surface_checks():
         "APPROACH-CLEARANCE-001",
         "LANDING-TILT-001",
         "PATH-SPEED-001",
+        "PATH-ACCEL-001",
     }
     assert failed_ids(evidence) == {"APPROACH-CLEARANCE-001", "LANDING-TILT-001"}
     assert result_by_id(evidence, "APPROACH-CLEARANCE-001").safety_margin == -0.5
@@ -72,7 +74,7 @@ def test_close_approach_review_flags_corridor_and_speed():
 
     assert evidence.decision == Decision.REQUIRE_REVIEW
     assert evidence.scenario_family == "close_approach"
-    assert evidence.checked_count == 3
+    assert evidence.checked_count == 4
     assert evidence.failed_count == 2
     assert evidence.highest_severity == "critical"
     assert evidence.primary_rule_id == "PATH-SPEED-001"
@@ -82,6 +84,7 @@ def test_close_approach_review_flags_corridor_and_speed():
         "APPROACH-CLEARANCE-001",
         "PATH-CORRIDOR-001",
         "PATH-SPEED-001",
+        "PATH-ACCEL-001",
     }
     assert failed_ids(evidence) == {"PATH-CORRIDOR-001", "PATH-SPEED-001"}
     assert result_by_id(evidence, "PATH-CORRIDOR-001").recommendation == "Re-center the path inside the approach corridor before continuing."
