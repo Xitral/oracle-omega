@@ -71,13 +71,25 @@ def build_horizons_url(query: HorizonsQuery, endpoint: str = HORIZONS_ENDPOINT) 
     return f"{endpoint}?{urlencode(build_horizons_params(query))}"
 
 
+def result_from_json_object(data: dict) -> str | None:
+    if isinstance(data.get("result"), str):
+        return data["result"]
+    if isinstance(data.get("text"), str):
+        return data["text"]
+    raw_response = data.get("raw_response")
+    if isinstance(raw_response, dict) and isinstance(raw_response.get("result"), str):
+        return raw_response["result"]
+    return None
+
+
 def load_horizons_result(path: str | Path) -> str:
     data = json.loads(Path(path).read_text(encoding="utf-8"))
-    if isinstance(data, dict) and isinstance(data.get("result"), str):
-        return data["result"]
-    if isinstance(data, dict) and isinstance(data.get("text"), str):
-        return data["text"]
-    raise ValueError("Expected a Horizons JSON object with a string 'result' or 'text' field.")
+    if not isinstance(data, dict):
+        raise ValueError("Expected a Horizons JSON object.")
+    result = result_from_json_object(data)
+    if result is None:
+        raise ValueError("Expected a Horizons JSON object with a string result payload.")
+    return result
 
 
 def fetch_horizons_json(query: HorizonsQuery, endpoint: str = HORIZONS_ENDPOINT, timeout: float = 30.0) -> dict:
@@ -142,7 +154,7 @@ def parse_horizons_vectors(
 
 
 def parse_horizons_json(data: dict, command: str | None = None, center: str | None = None) -> HorizonsVectorSeries:
-    result = data.get("result")
-    if not isinstance(result, str):
-        raise ValueError("Expected Horizons JSON response to include a string 'result' field.")
+    result = result_from_json_object(data)
+    if result is None:
+        raise ValueError("Expected Horizons JSON response to include a string result payload.")
     return parse_horizons_vectors(result, command=command, center=center)
