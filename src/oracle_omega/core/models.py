@@ -110,3 +110,45 @@ class CounterfactualReplayBundle(BaseModel):
     repair_candidate: RepairCandidate
     original_replay: ReplayBundle
     repaired_replay: ReplayBundle | None = None
+
+
+class UncertaintyConfig(BaseModel):
+    position_sigma: Vec3 = Field(default_factory=lambda: Vec3(x=0.0, y=0.15, z=0.05))
+    timing_sigma: float = 0.1
+    attitude_sigma_deg: Vec3 = Field(default_factory=lambda: Vec3(x=0.5, y=0.5, z=0.25))
+    samples: int = 100
+    seed: int = 7
+
+
+class MonteCarloSummary(BaseModel):
+    sample_count: int
+    pass_count: int
+    fail_count: int
+    failure_probability: float
+    decision_counts: dict[str, int] = Field(default_factory=dict)
+    failure_rule_counts: dict[str, int] = Field(default_factory=dict)
+    severity_counts: dict[str, int] = Field(default_factory=dict)
+    most_common_failure: str | None = None
+    worst_case_severity: str = "nominal"
+
+
+class AdversarialCase(BaseModel):
+    found: bool
+    triggered_rule: str | None = None
+    perturbation_norm: float | None = None
+    violation_time: float | None = None
+    direction: dict[str, float] = Field(default_factory=dict)
+    scenario: Scenario | None = None
+    evidence: EvidenceCard | None = None
+    description: str | None = None
+
+
+class RobustnessReport(BaseModel):
+    scenario_id: str
+    scenario_family: str
+    nominal_decision: Decision
+    nominal_failed_count: int
+    nominal_highest_severity: str
+    uncertainty: UncertaintyConfig
+    monte_carlo: MonteCarloSummary
+    adversarial_case: AdversarialCase
