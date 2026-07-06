@@ -12,6 +12,8 @@ The batch runner:
 - writes experiment folders
 - generates `index.json`
 - generates `benchmark-summary.md`
+- generates `benchmark-analytics.json`
+- generates `benchmark-analytics.md`
 
 ## Run the full scenario corpus
 
@@ -35,6 +37,8 @@ It also writes:
 ```text
 data/experiments/index.json
 data/experiments/benchmark-summary.md
+data/experiments/benchmark-analytics.json
+data/experiments/benchmark-analytics.md
 ```
 
 ## Repair comparison behavior
@@ -58,6 +62,7 @@ scenario corpus
 → repair comparisons
 → experiment index
 → benchmark summary
+→ benchmark analytics
 → release validation
 ```
 
