@@ -38,9 +38,11 @@ def test_starter_catalog_contains_expected_checks():
         "LANDING-TILT-001",
         "PATH-CORRIDOR-001",
         "PATH-SPEED-001",
+        "PATH-ACCEL-001",
     }
     assert next(item for item in checks if item["id"] == "PATH-SPEED-001")["max_speed"] == 0.65
     assert next(item for item in checks if item["id"] == "PATH-CORRIDOR-001")["max_offset"] == 2.5
+    assert next(item for item in checks if item["id"] == "PATH-ACCEL-001")["max_acceleration"] == 5.0
 
 
 def test_rule_file_rejects_missing_checks(tmp_path: Path):
