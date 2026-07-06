@@ -1,0 +1,44 @@
+name: ORACLE-Omega CI
+
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  validation:
+    name: Python ${{ matrix.python-version }} validation
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version: ["3.10", "3.11", "3.12"]
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+
+      - name: Install package with dev dependencies
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install -e ".[dev]"
+
+      - name: Run unit and contract tests
+        run: python -m pytest
+
+      - name: Run scenario suite evaluation
+        run: python -m src.oracle_omega.cli --suite oracle/scenarios --out data/reports/ci-suite-summary.json
+
+      - name: Build robustness visualization bundle
+        run: python -m src.oracle_omega.robustness_bundle_cli oracle/scenarios/example_corridor_speed_review.yaml --samples 20 --compare-repair --out data/bundles/ci-robustness-bundle.json
+
+      - name: Build reproducible experiment
+        run: python -m src.oracle_omega.experiment_cli oracle/scenarios/example_corridor_speed_review.yaml --robustness --samples 20 --compare-repair --experiment-id ci-experiment --tag ci --tag release-gate
+
+      - name: Run release validation harness
+        run: python -m src.oracle_omega.validate_release --out data/reports/release-validation.json
