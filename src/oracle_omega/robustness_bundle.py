@@ -39,8 +39,14 @@ def build_robustness_visualization_bundle(
         stress_replay = build_replay_bundle(stress_case.scenario, stress_case.evidence)
 
     buffered_repair_replay = None
-    if compare_repair:
-        repair = build_buffered_repair_candidate(scenario, rule_items, nominal_evidence)
+    if compare_repair and report.repair_comparison is not None:
+        sigma_buffer = report.repair_comparison.selected_sigma_buffer or 3.0
+        repair = build_buffered_repair_candidate(
+            scenario,
+            rule_items,
+            nominal_evidence,
+            sigma_buffer=sigma_buffer,
+        )
         if repair.available and repair.repaired_scenario is not None and repair.repaired_evidence is not None:
             buffered_repair_replay = build_replay_bundle(repair.repaired_scenario, repair.repaired_evidence)
 
