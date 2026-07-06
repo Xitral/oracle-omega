@@ -20,8 +20,12 @@ def test_benchmark_experiment_runner_generates_valid_suite_experiments(tmp_path:
     assert summary.index.experiment_count == summary.generated_count
     assert summary.index.robustness_count == summary.generated_count
     assert summary.index.repair_comparison_count >= 1
+    assert summary.analytics.aggregate.experiment_count == summary.generated_count
+    assert summary.analytics.aggregate.repair_comparison_count == summary.index.repair_comparison_count
     assert (tmp_path / "index.json").exists()
     assert (tmp_path / "benchmark-summary.md").exists()
+    assert (tmp_path / "benchmark-analytics.json").exists()
+    assert (tmp_path / "benchmark-analytics.md").exists()
 
     generated_by_id = {item.scenario_id: item for item in summary.generated}
     assert "example-corridor-speed-review" in generated_by_id
@@ -48,13 +52,22 @@ def test_benchmark_experiment_runner_writes_research_index_summary(tmp_path: Pat
         samples=10,
         index_path=tmp_path / "custom-index.json",
         summary_path=tmp_path / "custom-summary.md",
+        analytics_path=tmp_path / "custom-analytics.json",
+        analytics_summary_path=tmp_path / "custom-analytics.md",
     )
 
     assert summary.index_path.endswith("custom-index.json")
     assert summary.summary_path.endswith("custom-summary.md")
+    assert summary.analytics_path.endswith("custom-analytics.json")
+    assert summary.analytics_summary_path.endswith("custom-analytics.md")
     assert (tmp_path / "custom-index.json").exists()
     assert (tmp_path / "custom-summary.md").exists()
+    assert (tmp_path / "custom-analytics.json").exists()
+    assert (tmp_path / "custom-analytics.md").exists()
     markdown = (tmp_path / "custom-summary.md").read_text(encoding="utf-8")
+    analytics_markdown = (tmp_path / "custom-analytics.md").read_text(encoding="utf-8")
     assert "ORACLE-Omega Experiment Index" in markdown
     assert "| Experiment | Scenario | Decision |" in markdown
     assert "`REQUIRE_REVIEW` |" in markdown
+    assert "ORACLE-Omega Benchmark Analytics" in analytics_markdown
+    assert "Mean absolute risk reduction" in analytics_markdown
