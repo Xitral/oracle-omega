@@ -1,0 +1,8 @@
+id: stress-repeated-time
+name: Stress Repeated Time
+family: close_approach
+planned_path:
+  - t: 0.0
+    position: {x: 10.0, y: 0.0, z: 0.0}
+  - t: 0.0
+    position: {x: 9.0, y: 0.0, z: 0.0}
