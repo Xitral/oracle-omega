@@ -35,3 +35,36 @@ def max_tilt(path: list[PathSample]) -> tuple[float, float | None]:
             result_time = sample.t
 
     return result, result_time
+
+
+def lateral_offset_yz(sample: PathSample) -> float:
+    return math.sqrt(sample.position.y**2 + sample.position.z**2)
+
+
+def max_lateral_offset(path: list[PathSample]) -> tuple[float, float | None]:
+    result = 0.0
+    result_time = None
+
+    for sample in path:
+        value = lateral_offset_yz(sample)
+        if value > result:
+            result = value
+            result_time = sample.t
+
+    return result, result_time
+
+
+def max_segment_speed(path: list[PathSample]) -> tuple[float, float | None]:
+    result = 0.0
+    result_time = None
+
+    for previous, current in zip(path, path[1:]):
+        dt = current.t - previous.t
+        if dt <= 0:
+            continue
+        value = distance(previous.position, current.position) / dt
+        if value > result:
+            result = value
+            result_time = current.t
+
+    return result, result_time
