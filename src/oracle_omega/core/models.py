@@ -40,6 +40,7 @@ class RuleResult(BaseModel):
     measured: dict[str, Any] = Field(default_factory=dict)
     reason: str
     violation_time: float | None = None
+    recommendation: str | None = None
 
 
 class EvidenceCard(BaseModel):
@@ -51,6 +52,7 @@ class EvidenceCard(BaseModel):
     failed_count: int
     primary_rule_id: str | None = None
     primary_violation_time: float | None = None
+    primary_recommendation: str | None = None
     summary: str
 
 
@@ -59,6 +61,7 @@ class ReplayMarker(BaseModel):
     t: float
     label: str
     severity: str = "review"
+    recommendation: str | None = None
 
 
 class ReplayFrame(BaseModel):
@@ -75,4 +78,5 @@ class ReplayBundle(BaseModel):
     decision: Decision
     primary_rule_id: str | None = None
     primary_violation_time: float | None = None
+    primary_recommendation: str | None = None
     frames: list[ReplayFrame]
