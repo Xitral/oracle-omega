@@ -1,5 +1,5 @@
 catalog_id: oracle-omega-starter-checks
-version: 0.2.0
+version: 0.3.0
 description: Starter simulation-only spatial assurance check catalog for ORACLE-Omega.
 checks:
   - id: APPROACH-CLEARANCE-001
@@ -39,3 +39,12 @@ checks:
     max_speed: 0.65
     reason: Path segment speed check.
     recommendation: Reduce segment speed and regenerate the path preview before continuing.
+
+  - id: PATH-ACCEL-001
+    type: acceleration_limit
+    families:
+      - close_approach
+      - surface_landing
+    max_acceleration: 5.0
+    reason: Path segment acceleration feasibility check.
+    recommendation: Smooth the path timing or geometry before accepting the scenario.
