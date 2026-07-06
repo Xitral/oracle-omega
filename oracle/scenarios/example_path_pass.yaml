@@ -1,6 +1,6 @@
 id: example-path-pass
 name: Passing path demo
-family: example
+family: close_approach
 parameters:
   description: A simple path that remains outside the central volume.
 planned_path:
