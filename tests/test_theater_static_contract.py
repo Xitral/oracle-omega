@@ -26,7 +26,7 @@ def test_theater_contains_replay_loader_and_timeline_controls():
 
     assert "file-input" in html
     assert "timeline" in html
-    assert "renderReplay" in html
+    assert "renderPayload" in html
     assert "focusFrame" in html
     assert "Focus primary violation" in html
 
@@ -50,3 +50,15 @@ def test_theater_displays_corrective_guidance_and_severity():
     assert "normalized_margin" in html
     assert "Reduce segment speed" in html
     assert "Re-center the path" in html
+
+
+def test_theater_supports_counterfactual_ghost_replay():
+    html = THEATER.read_text(encoding="utf-8")
+
+    assert "repair_candidate" in html
+    assert "original_replay" in html
+    assert "repaired_replay" in html
+    assert "ghost-repair-path-line" in html
+    assert "ghost-repair-marker" in html
+    assert "ghostVehicle" in html
+    assert "Counterfactual Repair" in html
