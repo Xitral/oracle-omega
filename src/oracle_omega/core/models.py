@@ -52,3 +52,27 @@ class EvidenceCard(BaseModel):
     primary_rule_id: str | None = None
     primary_violation_time: float | None = None
     summary: str
+
+
+class ReplayMarker(BaseModel):
+    rule_id: str
+    t: float
+    label: str
+    severity: str = "review"
+
+
+class ReplayFrame(BaseModel):
+    t: float
+    position: Vec3
+    attitude_deg: Vec3
+    active_markers: list[ReplayMarker] = Field(default_factory=list)
+    is_primary_violation_frame: bool = False
+
+
+class ReplayBundle(BaseModel):
+    scenario_id: str
+    scenario_family: str
+    decision: Decision
+    primary_rule_id: str | None = None
+    primary_violation_time: float | None = None
+    frames: list[ReplayFrame]
