@@ -63,6 +63,7 @@ The buffered repair currently applies conservative margins to:
 
 - corridor offset
 - protected-volume clearance
+- roll and pitch tilt
 - segment speed timing
 
 The comparison reports:
