@@ -18,6 +18,11 @@ def applies_to_family(item: dict[str, Any], family: str) -> bool:
     return family in families
 
 
+def recommendation_for(item: dict[str, Any]) -> str | None:
+    value = item.get("recommendation")
+    return None if value is None else str(value)
+
+
 def primary_failure(results: list[RuleResult]) -> RuleResult | None:
     failures = [result for result in results if not result.passed]
     if not failures:
@@ -39,6 +44,7 @@ def review(scenario: Scenario, rule_items: list[dict[str, Any]]) -> EvidenceCard
             continue
 
         kind = item.get("type")
+        recommendation = recommendation_for(item)
 
         if kind == "radius_clearance":
             center_data = item["center"]
@@ -52,6 +58,7 @@ def review(scenario: Scenario, rule_items: list[dict[str, Any]]) -> EvidenceCard
                     measured={"closest_distance": value, "radius": limit},
                     reason=str(item.get("reason", "Radius clearance check.")),
                     violation_time=event_time if inside else None,
+                    recommendation=recommendation if inside else None,
                 )
             )
             continue
@@ -67,6 +74,7 @@ def review(scenario: Scenario, rule_items: list[dict[str, Any]]) -> EvidenceCard
                     measured={"max_tilt_deg": value, "limit_deg": limit},
                     reason=str(item.get("reason", "Tilt limit check.")),
                     violation_time=event_time if failed else None,
+                    recommendation=recommendation if failed else None,
                 )
             )
             continue
@@ -82,6 +90,7 @@ def review(scenario: Scenario, rule_items: list[dict[str, Any]]) -> EvidenceCard
                     measured={"max_lateral_offset": value, "limit": limit},
                     reason=str(item.get("reason", "Corridor offset check.")),
                     violation_time=event_time if failed else None,
+                    recommendation=recommendation if failed else None,
                 )
             )
             continue
@@ -97,6 +106,7 @@ def review(scenario: Scenario, rule_items: list[dict[str, Any]]) -> EvidenceCard
                     measured={"max_segment_speed": value, "limit": limit},
                     reason=str(item.get("reason", "Segment speed check.")),
                     violation_time=event_time if failed else None,
+                    recommendation=recommendation if failed else None,
                 )
             )
             continue
@@ -107,6 +117,7 @@ def review(scenario: Scenario, rule_items: list[dict[str, Any]]) -> EvidenceCard
                 passed=False,
                 measured={"kind": kind},
                 reason="Unsupported check type.",
+                recommendation="Review the unsupported check configuration before using this scenario.",
             )
         )
 
@@ -122,5 +133,6 @@ def review(scenario: Scenario, rule_items: list[dict[str, Any]]) -> EvidenceCard
         failed_count=failed_count,
         primary_rule_id=None if failure is None else failure.rule_id,
         primary_violation_time=None if failure is None else failure.violation_time,
+        primary_recommendation=None if failure is None else failure.recommendation,
         summary="All checks passed." if passed else "One or more checks require review.",
     )
