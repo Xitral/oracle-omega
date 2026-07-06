@@ -28,6 +28,8 @@ class ExperimentIndexEntry(BaseModel):
     absolute_risk_reduction: float | None = None
     relative_risk_reduction: float | None = None
     most_common_failure: str | None = None
+    selected_sigma_buffer: float | None = None
+    target_failure_probability: float | None = None
     scenario_sha256: str
     rule_catalog_sha256: str
     manifest_path: str
@@ -77,6 +79,8 @@ def robustness_metrics(bundle_path: Path | None) -> dict:
         "absolute_risk_reduction": comparison.get("absolute_risk_reduction"),
         "relative_risk_reduction": comparison.get("relative_risk_reduction"),
         "most_common_failure": monte_carlo.get("most_common_failure"),
+        "selected_sigma_buffer": comparison.get("selected_sigma_buffer"),
+        "target_failure_probability": comparison.get("target_failure_probability"),
     }
 
 
@@ -105,6 +109,8 @@ def build_entry(manifest_path: Path, experiment_root: Path) -> ExperimentIndexEn
         absolute_risk_reduction=metrics.get("absolute_risk_reduction"),
         relative_risk_reduction=metrics.get("relative_risk_reduction"),
         most_common_failure=metrics.get("most_common_failure"),
+        selected_sigma_buffer=metrics.get("selected_sigma_buffer"),
+        target_failure_probability=metrics.get("target_failure_probability"),
         scenario_sha256=manifest["scenario_sha256"],
         rule_catalog_sha256=manifest["rule_catalog_sha256"],
         manifest_path=as_repo_path(manifest_path, experiment_root),
@@ -135,6 +141,10 @@ def risk_text(value: float | None) -> str:
     return "n/a" if value is None else f"{value:.3f}"
 
 
+def buffer_text(value: float | None) -> str:
+    return "n/a" if value is None else f"{value:.1f}σ"
+
+
 def build_benchmark_summary(index: ExperimentIndex) -> str:
     lines = [
         "# ORACLE-Omega Experiment Index",
@@ -151,8 +161,8 @@ def build_benchmark_summary(index: ExperimentIndex) -> str:
         "",
         "## Experiments",
         "",
-        "| Experiment | Scenario | Decision | Failed | Original risk | Repaired risk | Risk reduction | Common failure |",
-        "| --- | --- | --- | ---: | ---: | ---: | ---: | --- |",
+        "| Experiment | Scenario | Decision | Failed | Original risk | Repaired risk | Risk reduction | Sigma buffer | Common failure |",
+        "| --- | --- | --- | ---: | ---: | ---: | ---: | ---: | --- |",
     ]
     for entry in index.entries:
         lines.append(
@@ -163,6 +173,7 @@ def build_benchmark_summary(index: ExperimentIndex) -> str:
             f"| {risk_text(entry.original_failure_probability)} "
             f"| {risk_text(entry.repaired_failure_probability)} "
             f"| {risk_text(entry.absolute_risk_reduction)} "
+            f"| {buffer_text(entry.selected_sigma_buffer)} "
             f"| `{entry.most_common_failure}` |"
         )
 
