@@ -161,12 +161,15 @@ def validate_batch_benchmark(checks: list[ReleaseValidationCheck]) -> None:
         require(summary.index.repair_comparison_count >= 1, "Benchmark should include at least one repair comparison.")
         require(summary.analytics.aggregate.experiment_count == summary.generated_count, "Analytics count did not match generated experiments.")
         require(summary.analytics.aggregate.mean_absolute_risk_reduction is not None, "Analytics missing mean risk reduction.")
+        require(summary.claims.claim_count >= 3, "Claim-card report missing expected claims.")
         require((root / "index.json").exists(), "Benchmark index JSON missing.")
         require((root / "benchmark-summary.md").exists(), "Benchmark summary missing.")
         require((root / "benchmark-analytics.json").exists(), "Benchmark analytics JSON missing.")
         require((root / "benchmark-analytics.md").exists(), "Benchmark analytics summary missing.")
+        require((root / "benchmark-claims.json").exists(), "Benchmark claims JSON missing.")
+        require((root / "benchmark-claims.md").exists(), "Benchmark claims summary missing.")
 
-    add_check(checks, "batch-benchmark", True, "Batch benchmark experiment and analytics generation validated.")
+    add_check(checks, "batch-benchmark", True, "Batch benchmark experiment, analytics, and claim-card generation validated.")
 
 
 def validate_theater_contracts(checks: list[ReleaseValidationCheck]) -> None:
