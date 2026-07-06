@@ -14,6 +14,8 @@ The batch runner:
 - generates `benchmark-summary.md`
 - generates `benchmark-analytics.json`
 - generates `benchmark-analytics.md`
+- generates `benchmark-claims.json`
+- generates `benchmark-claims.md`
 
 ## Run the full scenario corpus
 
@@ -39,6 +41,8 @@ data/experiments/index.json
 data/experiments/benchmark-summary.md
 data/experiments/benchmark-analytics.json
 data/experiments/benchmark-analytics.md
+data/experiments/benchmark-claims.json
+data/experiments/benchmark-claims.md
 ```
 
 ## Repair comparison behavior
@@ -63,6 +67,7 @@ scenario corpus
 → experiment index
 → benchmark summary
 → benchmark analytics
+→ benchmark claim cards
 → release validation
 ```
 
