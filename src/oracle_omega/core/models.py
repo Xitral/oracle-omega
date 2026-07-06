@@ -1,12 +1,12 @@
 from __future__ import annotations
 
-from enum import StrEnum
+from enum import Enum
 from typing import Any
 
 from pydantic import BaseModel, Field
 
 
-class Decision(StrEnum):
+class Decision(str, Enum):
     ALLOW = "ALLOW"
     BLOCK = "BLOCK"
     HOLD = "HOLD"
