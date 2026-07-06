@@ -3,7 +3,12 @@ from __future__ import annotations
 from typing import Any
 
 from src.oracle_omega.core.models import Decision, EvidenceCard, RuleResult, Scenario, Vec3
-from src.oracle_omega.spatial.checks import max_tilt, path_inside_radius
+from src.oracle_omega.spatial.checks import (
+    max_lateral_offset,
+    max_segment_speed,
+    max_tilt,
+    path_inside_radius,
+)
 
 
 def review(scenario: Scenario, rule_items: list[dict[str, Any]]) -> EvidenceCard:
@@ -38,6 +43,36 @@ def review(scenario: Scenario, rule_items: list[dict[str, Any]]) -> EvidenceCard
                     passed=not failed,
                     measured={"max_tilt_deg": value, "limit_deg": limit},
                     reason=str(item.get("reason", "Tilt limit check.")),
+                    violation_time=event_time if failed else None,
+                )
+            )
+            continue
+
+        if kind == "corridor_limit":
+            limit = float(item["max_offset"])
+            value, event_time = max_lateral_offset(scenario.planned_path)
+            failed = value > limit
+            results.append(
+                RuleResult(
+                    rule_id=str(item["id"]),
+                    passed=not failed,
+                    measured={"max_lateral_offset": value, "limit": limit},
+                    reason=str(item.get("reason", "Corridor offset check.")),
+                    violation_time=event_time if failed else None,
+                )
+            )
+            continue
+
+        if kind == "speed_limit":
+            limit = float(item["max_speed"])
+            value, event_time = max_segment_speed(scenario.planned_path)
+            failed = value > limit
+            results.append(
+                RuleResult(
+                    rule_id=str(item["id"]),
+                    passed=not failed,
+                    measured={"max_segment_speed": value, "limit": limit},
+                    reason=str(item.get("reason", "Segment speed check.")),
                     violation_time=event_time if failed else None,
                 )
             )
