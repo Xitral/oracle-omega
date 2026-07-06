@@ -22,6 +22,7 @@ data/reports/*.json
 data/repairs/*.json
 data/robustness/*.json
 data/bundles/*.json
+data/experiments/
 
 # OS/editor
 .DS_Store
