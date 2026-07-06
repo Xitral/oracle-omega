@@ -29,6 +29,14 @@ def test_benchmark_experiment_runner_generates_valid_suite_experiments(tmp_path:
     assert "close-approach-fragile-corridor-pass" in generated_by_id
     assert generated_by_id["close-approach-fragile-corridor-pass"].repair_comparison_enabled is False
 
+    index_by_id = {entry.scenario_id: entry for entry in summary.index.entries}
+    tilt_entry = index_by_id["surface-landing-tilt-failure"]
+    assert tilt_entry.original_failure_probability == 1.0
+    assert tilt_entry.repaired_failure_probability is not None
+    assert tilt_entry.repaired_failure_probability <= 0.25
+    assert tilt_entry.absolute_risk_reduction is not None
+    assert tilt_entry.absolute_risk_reduction >= 0.75
+
     assert all("stress" in skipped.path for skipped in summary.skipped)
 
 
