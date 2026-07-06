@@ -19,6 +19,7 @@ build/
 data/logs/*.jsonl
 data/replays/*.json
 data/reports/*.json
+data/repairs/*.json
 
 # OS/editor
 .DS_Store
