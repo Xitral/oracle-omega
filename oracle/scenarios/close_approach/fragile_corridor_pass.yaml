@@ -1,0 +1,20 @@
+id: close-approach-fragile-corridor-pass
+name: Close Approach Fragile Corridor Pass
+family: close_approach
+parameters:
+  description: A nominally passing path near the corridor boundary for uncertainty robustness evaluation.
+  uncertainty:
+    position_sigma: {x: 0.02, y: 0.3, z: 0.05}
+    timing_sigma: 0.12
+    attitude_sigma_deg: {x: 0.4, y: 0.4, z: 0.2}
+    samples: 100
+    seed: 17
+planned_path:
+  - t: 0.0
+    position: {x: 10.0, y: 0.0, z: 0.0}
+  - t: 8.0
+    position: {x: 7.0, y: 2.2, z: 0.0}
+  - t: 16.0
+    position: {x: 5.0, y: 2.35, z: 0.0}
+  - t: 24.0
+    position: {x: 3.2, y: 2.3, z: 0.0}
