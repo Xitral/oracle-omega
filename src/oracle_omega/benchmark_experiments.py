@@ -4,6 +4,11 @@ from pathlib import Path
 
 from pydantic import BaseModel, Field
 
+from src.oracle_omega.benchmark_analytics import (
+    BenchmarkAnalyticsReport,
+    build_benchmark_analytics,
+    write_analytics_outputs,
+)
 from src.oracle_omega.core.models import Decision
 from src.oracle_omega.experiment import ExperimentManifest, run_experiment, slugify
 from src.oracle_omega.experiment_index import ExperimentIndex, build_experiment_index, write_index_outputs
@@ -36,9 +41,12 @@ class BenchmarkExperimentSummary(BaseModel):
     skipped_count: int
     index_path: str
     summary_path: str
+    analytics_path: str
+    analytics_summary_path: str
     generated: list[BenchmarkExperimentRun] = Field(default_factory=list)
     skipped: list[BenchmarkSkippedCase] = Field(default_factory=list)
     index: ExperimentIndex
+    analytics: BenchmarkAnalyticsReport
 
 
 def run_id_for_scenario(scenario_id: str) -> str:
@@ -63,12 +71,19 @@ def run_benchmark_experiments(
     samples: int = 100,
     index_path: str | Path | None = None,
     summary_path: str | Path | None = None,
+    analytics_path: str | Path | None = None,
+    analytics_summary_path: str | Path | None = None,
+    repair_success_threshold: float = 0.05,
 ) -> BenchmarkExperimentSummary:
     suite = Path(suite_root)
     rules_path = Path(rule_catalog_path)
     out = Path(output_root)
     index_out = Path(index_path) if index_path is not None else out / "index.json"
     summary_out = Path(summary_path) if summary_path is not None else out / "benchmark-summary.md"
+    analytics_out = Path(analytics_path) if analytics_path is not None else out / "benchmark-analytics.json"
+    analytics_summary_out = (
+        Path(analytics_summary_path) if analytics_summary_path is not None else out / "benchmark-analytics.md"
+    )
     rules = read_rule_file(rules_path)
 
     generated: list[BenchmarkExperimentRun] = []
@@ -109,6 +124,12 @@ def run_benchmark_experiments(
 
     index = build_experiment_index(out)
     write_index_outputs(index, index_out, summary_out)
+    analytics = build_benchmark_analytics(
+        index,
+        repair_success_threshold=repair_success_threshold,
+        benchmark_only=True,
+    )
+    write_analytics_outputs(analytics, analytics_out, analytics_summary_out)
 
     return BenchmarkExperimentSummary(
         suite_root=str(suite).replace("\\", "/"),
@@ -117,7 +138,10 @@ def run_benchmark_experiments(
         skipped_count=len(skipped),
         index_path=str(index_out).replace("\\", "/"),
         summary_path=str(summary_out).replace("\\", "/"),
+        analytics_path=str(analytics_out).replace("\\", "/"),
+        analytics_summary_path=str(analytics_summary_out).replace("\\", "/"),
         generated=generated,
         skipped=skipped,
         index=index,
+        analytics=analytics,
     )
