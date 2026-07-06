@@ -1,0 +1,12 @@
+id: close-approach-combined-failure
+name: Close Approach Combined Failure
+family: close_approach
+planned_path:
+  - t: 0.0
+    position: {x: 10.0, y: 0.0, z: 0.0}
+  - t: 3.0
+    position: {x: 7.0, y: 3.1, z: 0.0}
+  - t: 6.0
+    position: {x: 4.0, y: 3.7, z: 0.0}
+  - t: 9.0
+    position: {x: 1.5, y: 2.9, z: 0.0}
