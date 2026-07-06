@@ -19,7 +19,8 @@
         padding: 32px;
       }
       .viewport,
-      .panel {
+      .panel,
+      .card {
         border: 1px solid #233047;
         border-radius: 18px;
         background: linear-gradient(180deg, #101827, #070a12);
@@ -27,16 +28,36 @@
       }
       .viewport {
         min-height: 520px;
+        padding: 24px;
+        color: #7fa8ff;
+        position: relative;
+        overflow: hidden;
+      }
+      .scene-grid {
+        height: 100%;
+        min-height: 460px;
+        border-radius: 14px;
+        background:
+          radial-gradient(circle at 70% 35%, rgba(127, 168, 255, 0.18), transparent 24%),
+          linear-gradient(rgba(127, 168, 255, 0.08) 1px, transparent 1px),
+          linear-gradient(90deg, rgba(127, 168, 255, 0.08) 1px, transparent 1px);
+        background-size: auto, 42px 42px, 42px 42px;
         display: grid;
         place-items: center;
-        color: #7fa8ff;
       }
       .panel {
         padding: 24px;
       }
+      .card {
+        margin-top: 16px;
+        padding: 16px;
+      }
       h1 {
         margin-top: 0;
         letter-spacing: 0.08em;
+      }
+      h2 {
+        margin-bottom: 8px;
       }
       .badge {
         display: inline-block;
@@ -47,24 +68,50 @@
         font-size: 12px;
         letter-spacing: 0.08em;
       }
+      .decision {
+        color: #ffb86b;
+        font-weight: 700;
+      }
       code {
         color: #ffb86b;
+      }
+      ul {
+        padding-left: 20px;
       }
     </style>
   </head>
   <body>
     <main>
       <section class="viewport">
-        3D evidence viewport placeholder
+        <div class="scene-grid">
+          Future 3D evidence viewport: planned path, corridor, reference volume, violation markers
+        </div>
       </section>
       <aside class="panel">
         <span class="badge">SIMULATION ONLY</span>
         <h1>ORACLE-Omega</h1>
         <p>First interface shell for replaying spatial assurance evidence.</p>
-        <p>Next target: render planned paths, transparent volumes, violation markers, and evidence cards.</p>
-        <p>CLI examples:</p>
-        <p><code>python -m src.oracle_omega.cli oracle/scenarios/example_path_pass.yaml</code></p>
-        <p><code>python -m src.oracle_omega.cli oracle/scenarios/example_path_review.yaml</code></p>
+
+        <section class="card">
+          <h2>Current checks</h2>
+          <ul>
+            <li>Central radius clearance</li>
+            <li>Maximum roll/pitch tilt</li>
+            <li>Lateral corridor offset</li>
+            <li>Maximum segment speed</li>
+          </ul>
+        </section>
+
+        <section class="card">
+          <h2>Example decision</h2>
+          <p class="decision">REQUIRE_REVIEW</p>
+          <p>Corridor and speed checks exceeded their starter limits.</p>
+        </section>
+
+        <section class="card">
+          <h2>CLI</h2>
+          <p><code>python -m src.oracle_omega.cli oracle/scenarios/example_corridor_speed_review.yaml --out data/replays/corridor-speed.json</code></p>
+        </section>
       </aside>
     </main>
   </body>
