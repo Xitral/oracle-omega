@@ -41,6 +41,9 @@ class RuleResult(BaseModel):
     reason: str
     violation_time: float | None = None
     recommendation: str | None = None
+    safety_margin: float | None = None
+    normalized_margin: float | None = None
+    severity: str = "nominal"
 
 
 class EvidenceCard(BaseModel):
@@ -53,6 +56,7 @@ class EvidenceCard(BaseModel):
     primary_rule_id: str | None = None
     primary_violation_time: float | None = None
     primary_recommendation: str | None = None
+    highest_severity: str = "nominal"
     summary: str
 
 
@@ -62,6 +66,8 @@ class ReplayMarker(BaseModel):
     label: str
     severity: str = "review"
     recommendation: str | None = None
+    safety_margin: float | None = None
+    normalized_margin: float | None = None
 
 
 class ReplayFrame(BaseModel):
@@ -79,4 +85,5 @@ class ReplayBundle(BaseModel):
     primary_rule_id: str | None = None
     primary_violation_time: float | None = None
     primary_recommendation: str | None = None
+    highest_severity: str = "nominal"
     frames: list[ReplayFrame]
