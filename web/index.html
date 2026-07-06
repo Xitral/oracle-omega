@@ -1,0 +1,71 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>ORACLE-Omega</title>
+    <style>
+      body {
+        margin: 0;
+        min-height: 100vh;
+        background: #05070d;
+        color: #f4f7fb;
+        font-family: Arial, sans-serif;
+      }
+      main {
+        display: grid;
+        grid-template-columns: 1.5fr 1fr;
+        gap: 24px;
+        padding: 32px;
+      }
+      .viewport,
+      .panel {
+        border: 1px solid #233047;
+        border-radius: 18px;
+        background: linear-gradient(180deg, #101827, #070a12);
+        box-shadow: 0 24px 80px rgba(0, 0, 0, 0.35);
+      }
+      .viewport {
+        min-height: 520px;
+        display: grid;
+        place-items: center;
+        color: #7fa8ff;
+      }
+      .panel {
+        padding: 24px;
+      }
+      h1 {
+        margin-top: 0;
+        letter-spacing: 0.08em;
+      }
+      .badge {
+        display: inline-block;
+        padding: 6px 10px;
+        border-radius: 999px;
+        background: #13213a;
+        color: #9fc0ff;
+        font-size: 12px;
+        letter-spacing: 0.08em;
+      }
+      code {
+        color: #ffb86b;
+      }
+    </style>
+  </head>
+  <body>
+    <main>
+      <section class="viewport">
+        3D evidence viewport placeholder
+      </section>
+      <aside class="panel">
+        <span class="badge">SIMULATION ONLY</span>
+        <h1>ORACLE-Omega</h1>
+        <p>First interface shell for replaying spatial assurance evidence.</p>
+        <p>Next target: render planned paths, transparent volumes, violation markers, and evidence cards.</p>
+        <p>CLI examples:</p>
+        <p><code>python -m src.oracle_omega.cli oracle/scenarios/example_path_pass.yaml</code></p>
+        <p><code>python -m src.oracle_omega.cli oracle/scenarios/example_path_review.yaml</code></p>
+      </aside>
+    </main>
+  </body>
+</html>
