@@ -21,3 +21,12 @@ def test_theater_default_replay_matches_fixture_scenario():
     assert "PATH-SPEED-001" in html
     assert "PATH-CORRIDOR-001" in html
     assert "primary_violation_time: 5" in html
+
+
+def test_theater_displays_corrective_guidance():
+    html = THEATER.read_text(encoding="utf-8")
+
+    assert "primary-recommendation" in html
+    assert "Reduce segment speed" in html
+    assert "Re-center the path" in html
+    assert "recommendation" in html
