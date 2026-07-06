@@ -66,6 +66,32 @@ The buffered repair currently applies conservative margins to:
 - roll and pitch tilt
 - segment speed timing
 
+## Adaptive buffered repair
+
+Repair comparison now performs an adaptive buffer search. Instead of using a single fixed margin, ORACLE-Omega evaluates multiple sigma buffers and selects the first repaired path that reaches the target failure probability.
+
+Current search:
+
+```text
+3.0σ, 4.0σ, 5.0σ, 6.0σ
+```
+
+Current target:
+
+```text
+failure_probability <= 0.01
+```
+
+The comparison records:
+
+- selected sigma buffer
+- target failure probability
+- candidate failure probabilities for each tested buffer
+- repaired failure probability
+- risk reduction
+
+This makes residual-risk cases inspectable rather than hidden.
+
 The comparison reports:
 
 - whether repair was available
@@ -105,6 +131,7 @@ This subsystem enables experiments around:
 - common failure modes under perturbation
 - worst-case perturbation magnitude
 - robustness of repaired paths
+- adaptive buffer selection
 - sensitivity to check-catalog thresholds
 - robustness differences across scenario families
 - risk reduction after uncertainty-buffered repair
