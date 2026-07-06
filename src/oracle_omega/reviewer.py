@@ -3,6 +3,7 @@ from __future__ import annotations
 from typing import Any
 
 from src.oracle_omega.core.models import Decision, EvidenceCard, RuleResult, Scenario, Vec3
+from src.oracle_omega.physics.kinematics import max_segment_acceleration
 from src.oracle_omega.spatial.checks import (
     max_lateral_offset,
     max_segment_speed,
@@ -165,6 +166,25 @@ def review(scenario: Scenario, rule_items: list[dict[str, Any]]) -> EvidenceCard
                     passed=not failed,
                     measured={"max_segment_speed": value, "limit": limit},
                     reason=str(item.get("reason", "Segment speed check.")),
+                    violation_time=event_time if failed else None,
+                    recommendation=recommendation,
+                    margin=margin,
+                    limit=limit,
+                )
+            )
+            continue
+
+        if kind == "acceleration_limit":
+            limit = float(item["max_acceleration"])
+            value, event_time = max_segment_acceleration(scenario.planned_path)
+            failed = value > limit
+            margin = limit - value
+            results.append(
+                make_result(
+                    item=item,
+                    passed=not failed,
+                    measured={"max_segment_acceleration": value, "limit": limit},
+                    reason=str(item.get("reason", "Segment acceleration check.")),
                     violation_time=event_time if failed else None,
                     recommendation=recommendation,
                     margin=margin,
