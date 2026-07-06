@@ -7,17 +7,18 @@ ITEMS = ROOT / "oracle" / "rules" / "starter_rules.yaml"
 SCENARIOS = ROOT / "oracle" / "scenarios"
 
 
-def test_suite_runner_summarizes_existing_scenarios():
+def test_suite_runner_summarizes_expanded_scenario_corpus():
     summary = run_suite(SCENARIOS, ITEMS)
 
-    assert summary.total_cases >= 3
-    assert summary.valid_cases >= 3
-    assert summary.invalid_cases == 0
-    assert summary.decision_counts["ALLOW"] >= 1
-    assert summary.decision_counts["REQUIRE_REVIEW"] >= 1
-    assert summary.family_counts["close_approach"] >= 1
-    assert summary.family_counts["surface_landing"] >= 1
+    assert summary.total_cases >= 14
+    assert summary.valid_cases >= 11
+    assert summary.invalid_cases >= 3
+    assert summary.decision_counts["ALLOW"] >= 2
+    assert summary.decision_counts["REQUIRE_REVIEW"] >= 5
+    assert summary.family_counts["close_approach"] >= 5
+    assert summary.family_counts["surface_landing"] >= 5
     assert "PATH-SPEED-001" in summary.primary_rule_counts
+    assert "APPROACH-CLEARANCE-001" in summary.primary_rule_counts
 
 
 def test_suite_runner_records_invalid_scenario_without_stopping(tmp_path):
