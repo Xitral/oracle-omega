@@ -11,11 +11,13 @@ from src.oracle_omega.core.models import (
     EvidenceCard,
     MonteCarloSummary,
     PathSample,
+    RepairRobustnessComparison,
     RobustnessReport,
     Scenario,
     UncertaintyConfig,
     Vec3,
 )
+from src.oracle_omega.repair import build_repair_candidate
 from src.oracle_omega.reviewer import review
 
 SEVERITY_RANK = {"nominal": 0, "review": 1, "critical": 2}
@@ -197,6 +199,13 @@ def find_worst_case_stress(
     max_magnitude: float = 2.0,
     steps: int = 40,
 ) -> AdversarialCase:
+    nominal = review(scenario, rule_items)
+    if nominal.decision != Decision.ALLOW:
+        return AdversarialCase(
+            found=False,
+            description="Nominal scenario already requires review; directed stress search is reserved for nominally allowed scenarios.",
+        )
+
     best_scenario = None
     best_evidence = None
     best_direction = None
@@ -234,16 +243,49 @@ def find_worst_case_stress(
     )
 
 
+def compare_repaired_robustness(
+    scenario: Scenario,
+    rule_items: list[dict],
+    config: UncertaintyConfig,
+    original_summary: MonteCarloSummary,
+) -> RepairRobustnessComparison:
+    nominal = review(scenario, rule_items)
+    repair = build_repair_candidate(scenario, rule_items, nominal)
+    if not repair.available or repair.repaired_scenario is None:
+        return RepairRobustnessComparison(
+            repair_available=False,
+            original_failure_probability=original_summary.failure_probability,
+            original_fail_count=original_summary.fail_count,
+        )
+
+    repaired_summary = run_monte_carlo(repair.repaired_scenario, rule_items, config)
+    absolute = original_summary.failure_probability - repaired_summary.failure_probability
+    relative = absolute / original_summary.failure_probability if original_summary.failure_probability > 0 else 0.0
+    return RepairRobustnessComparison(
+        repair_available=True,
+        original_failure_probability=original_summary.failure_probability,
+        repaired_failure_probability=repaired_summary.failure_probability,
+        absolute_risk_reduction=absolute,
+        relative_risk_reduction=relative,
+        original_fail_count=original_summary.fail_count,
+        repaired_fail_count=repaired_summary.fail_count,
+        fixed_rules=repair.fixed_rules,
+        remaining_failures=repair.remaining_failures,
+    )
+
+
 def build_robustness_report(
     scenario: Scenario,
     rule_items: list[dict],
     sample_override: int | None = None,
     seed_override: int | None = None,
+    compare_repair: bool = False,
 ) -> RobustnessReport:
     config = uncertainty_from_scenario(scenario, sample_override, seed_override)
     nominal = review(scenario, rule_items)
     monte_carlo = run_monte_carlo(scenario, rule_items, config)
     stress_case = find_worst_case_stress(scenario, rule_items)
+    repair_comparison = compare_repaired_robustness(scenario, rule_items, config, monte_carlo) if compare_repair else None
 
     return RobustnessReport(
         scenario_id=scenario.id,
@@ -254,4 +296,5 @@ def build_robustness_report(
         uncertainty=config,
         monte_carlo=monte_carlo,
         adversarial_case=stress_case,
+        repair_comparison=repair_comparison,
     )
