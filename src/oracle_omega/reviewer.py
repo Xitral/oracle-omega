@@ -11,10 +11,20 @@ from src.oracle_omega.spatial.checks import (
 )
 
 
+def applies_to_family(item: dict[str, Any], family: str) -> bool:
+    families = item.get("families")
+    if families is None:
+        return True
+    return family in families
+
+
 def review(scenario: Scenario, rule_items: list[dict[str, Any]]) -> EvidenceCard:
     results: list[RuleResult] = []
 
     for item in rule_items:
+        if not applies_to_family(item, scenario.family):
+            continue
+
         kind = item.get("type")
 
         if kind == "radius_clearance":
