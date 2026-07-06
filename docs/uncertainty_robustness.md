@@ -52,7 +52,18 @@ The returned stress case includes:
 
 ## Repair robustness comparison
 
-The robustness report can optionally compare the original path against the repaired counterfactual path.
+The robustness report can optionally compare the original path against an uncertainty-buffered repaired path.
+
+This is different from deterministic repair:
+
+- deterministic repair tries to make the exact scenario pass
+- uncertainty-buffered repair tries to move the path away from the boundary so the repaired path stays safer under perturbation
+
+The buffered repair currently applies conservative margins to:
+
+- corridor offset
+- protected-volume clearance
+- segment speed timing
 
 The comparison reports:
 
@@ -95,7 +106,7 @@ This subsystem enables experiments around:
 - robustness of repaired paths
 - sensitivity to check-catalog thresholds
 - robustness differences across scenario families
-- risk reduction after counterfactual repair
+- risk reduction after uncertainty-buffered repair
 
 ## Next extensions
 
@@ -105,4 +116,4 @@ Planned extensions:
 - display stress ghost paths in ORACLE-Theater
 - compare original and repaired robustness reports in ORACLE-Theater
 - add low-discrepancy sampling
-- add uncertainty-aware repair objectives
+- add optimization-based buffered repair objectives
