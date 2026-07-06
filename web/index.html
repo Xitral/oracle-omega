@@ -77,6 +77,10 @@
         color: #ffb86b;
         font-weight: 700;
       }
+      .recommendation {
+        color: #b9fbc0;
+        font-weight: 700;
+      }
       code {
         color: #ffb86b;
         word-break: break-word;
@@ -135,6 +139,7 @@
           <h2>Decision</h2>
           <p id="decision" class="decision">No replay loaded</p>
           <p id="primary"></p>
+          <p id="primary-recommendation" class="recommendation"></p>
         </section>
 
         <section class="card">
@@ -152,16 +157,15 @@
         decision: "REQUIRE_REVIEW",
         primary_rule_id: "PATH-SPEED-001",
         primary_violation_time: 5,
+        primary_recommendation: "Reduce segment speed and regenerate the path preview before continuing.",
         frames: [
           { t: 0, position: { x: 10, y: 0, z: 0 }, attitude_deg: { x: 0, y: 0, z: 0 }, active_markers: [], is_primary_violation_frame: false },
-          { t: 5, position: { x: 7, y: 3.2, z: 0 }, attitude_deg: { x: 0, y: 0, z: 0 }, active_markers: [{ rule_id: "PATH-SPEED-001", t: 5, label: "Path segment speed check.", severity: "review" }], is_primary_violation_frame: true },
-          { t: 10, position: { x: 3.5, y: 3.6, z: 0 }, attitude_deg: { x: 0, y: 0, z: 0 }, active_markers: [{ rule_id: "PATH-CORRIDOR-001", t: 10, label: "Path corridor offset check.", severity: "review" }], is_primary_violation_frame: false },
+          { t: 5, position: { x: 7, y: 3.2, z: 0 }, attitude_deg: { x: 0, y: 0, z: 0 }, active_markers: [{ rule_id: "PATH-SPEED-001", t: 5, label: "Path segment speed check.", severity: "review", recommendation: "Reduce segment speed and regenerate the path preview before continuing." }], is_primary_violation_frame: true },
+          { t: 10, position: { x: 3.5, y: 3.6, z: 0 }, attitude_deg: { x: 0, y: 0, z: 0 }, active_markers: [{ rule_id: "PATH-CORRIDOR-001", t: 10, label: "Path corridor offset check.", severity: "review", recommendation: "Re-center the path inside the approach corridor before continuing." }], is_primary_violation_frame: false },
           { t: 15, position: { x: 2.6, y: 3.1, z: 0 }, attitude_deg: { x: 0, y: 0, z: 0 }, active_markers: [], is_primary_violation_frame: false }
         ]
       };
 
-      const sceneWidth = 900;
-      const sceneHeight = 560;
       const scale = 42;
       const origin = { x: 450, y: 280 };
       let currentReplay = defaultReplay;
@@ -222,12 +226,19 @@
         document.getElementById("primary").textContent = replay.primary_rule_id
           ? `Primary: ${replay.primary_rule_id} at T+${replay.primary_violation_time}s`
           : "No primary violation.";
+        document.getElementById("primary-recommendation").textContent = replay.primary_recommendation || "";
         const primaryFrame = replay.frames.find((frame) => frame.is_primary_violation_frame) || replay.frames[0];
         showFrameDetails(primaryFrame);
       }
 
       function showFrameDetails(frame) {
-        document.getElementById("frame-details").textContent = JSON.stringify(frame, null, 2);
+        const markers = frame.active_markers || [];
+        const recommendation = markers.map((marker) => marker.recommendation).filter(Boolean).join("\n");
+        const detail = {
+          ...frame,
+          recommendation: recommendation || null
+        };
+        document.getElementById("frame-details").textContent = JSON.stringify(detail, null, 2);
       }
 
       document.getElementById("file-input").addEventListener("change", async (event) => {
