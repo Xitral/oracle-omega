@@ -43,6 +43,8 @@ class BenchmarkAggregateMetrics(BaseModel):
     repair_success_count: int
     repair_success_rate: float | None
     mean_original_failure_probability: float | None
+    mean_repair_original_failure_probability: float | None
+    median_repair_original_failure_probability: float | None
     mean_repaired_failure_probability: float | None
     mean_absolute_risk_reduction: float | None
     median_absolute_risk_reduction: float | None
@@ -58,6 +60,7 @@ class BenchmarkGroupMetrics(BaseModel):
     repair_success_count: int
     repair_success_rate: float | None
     mean_original_failure_probability: float | None
+    mean_repair_original_failure_probability: float | None
     mean_repaired_failure_probability: float | None
     mean_absolute_risk_reduction: float | None
     median_absolute_risk_reduction: float | None
@@ -131,6 +134,7 @@ def group_metrics(
     repairs = repair_entries(entries)
     successes = [entry for entry in repairs if successful_repair(entry, repair_success_threshold)]
     original_risks = [entry.original_failure_probability for entry in entries if entry.original_failure_probability is not None]
+    repair_original_risks = [entry.original_failure_probability for entry in repairs if entry.original_failure_probability is not None]
     repaired_risks = [entry.repaired_failure_probability for entry in repairs if entry.repaired_failure_probability is not None]
     absolute_reductions = [entry.absolute_risk_reduction for entry in repairs if entry.absolute_risk_reduction is not None]
     return BenchmarkGroupMetrics(
@@ -143,6 +147,7 @@ def group_metrics(
         repair_success_count=len(successes),
         repair_success_rate=rate(len(successes), len(repairs)),
         mean_original_failure_probability=mean_or_none(original_risks),
+        mean_repair_original_failure_probability=mean_or_none(repair_original_risks),
         mean_repaired_failure_probability=mean_or_none(repaired_risks),
         mean_absolute_risk_reduction=mean_or_none(absolute_reductions),
         median_absolute_risk_reduction=median_or_none(absolute_reductions),
@@ -168,6 +173,7 @@ def build_benchmark_analytics(
     repairs = repair_entries(entries)
     successful_repairs = [entry for entry in repairs if successful_repair(entry, repair_success_threshold)]
     original_risks = [entry.original_failure_probability for entry in entries if entry.original_failure_probability is not None]
+    repair_original_risks = [entry.original_failure_probability for entry in repairs if entry.original_failure_probability is not None]
     repaired_risks = [entry.repaired_failure_probability for entry in repairs if entry.repaired_failure_probability is not None]
     absolute_reductions = [entry.absolute_risk_reduction for entry in repairs if entry.absolute_risk_reduction is not None]
     relative_reductions = [entry.relative_risk_reduction for entry in repairs if entry.relative_risk_reduction is not None]
@@ -212,6 +218,8 @@ def build_benchmark_analytics(
             repair_success_count=len(successful_repairs),
             repair_success_rate=rate(len(successful_repairs), len(repairs)),
             mean_original_failure_probability=mean_or_none(original_risks),
+            mean_repair_original_failure_probability=mean_or_none(repair_original_risks),
+            median_repair_original_failure_probability=median_or_none(repair_original_risks),
             mean_repaired_failure_probability=mean_or_none(repaired_risks),
             mean_absolute_risk_reduction=mean_or_none(absolute_reductions),
             median_absolute_risk_reduction=median_or_none(absolute_reductions),
@@ -247,8 +255,9 @@ def render_analytics_markdown(report: BenchmarkAnalyticsReport) -> str:
         f"- Repair comparisons: `{aggregate.repair_comparison_count}`",
         f"- Repair success threshold: `{report.repair_success_threshold}`",
         f"- Repair success rate: `{metric_text(aggregate.repair_success_rate)}`",
-        f"- Mean original failure probability: `{metric_text(aggregate.mean_original_failure_probability)}`",
-        f"- Mean repaired failure probability: `{metric_text(aggregate.mean_repaired_failure_probability)}`",
+        f"- Mean original failure probability across all benchmark experiments: `{metric_text(aggregate.mean_original_failure_probability)}`",
+        f"- Mean original failure probability for repair comparisons: `{metric_text(aggregate.mean_repair_original_failure_probability)}`",
+        f"- Mean repaired failure probability for repair comparisons: `{metric_text(aggregate.mean_repaired_failure_probability)}`",
         f"- Mean absolute risk reduction: `{metric_text(aggregate.mean_absolute_risk_reduction)}`",
         f"- Median absolute risk reduction: `{metric_text(aggregate.median_absolute_risk_reduction)}`",
         f"- Fragile nominal cases: `{aggregate.fragile_nominal_count}`",
@@ -258,13 +267,13 @@ def render_analytics_markdown(report: BenchmarkAnalyticsReport) -> str:
         "",
         "## Risk reduction by scenario family",
         "",
-        "| Family | Experiments | Repairs | Success rate | Mean original risk | Mean repaired risk | Mean risk reduction |",
+        "| Family | Experiments | Repairs | Success rate | Mean repair baseline risk | Mean repaired risk | Mean risk reduction |",
         "| --- | ---: | ---: | ---: | ---: | ---: | ---: |",
     ]
     for item in report.metrics_by_family:
         lines.append(
             f"| `{item.key}` | {item.experiment_count} | {item.repair_comparison_count} | "
-            f"{metric_text(item.repair_success_rate)} | {metric_text(item.mean_original_failure_probability)} | "
+            f"{metric_text(item.repair_success_rate)} | {metric_text(item.mean_repair_original_failure_probability)} | "
             f"{metric_text(item.mean_repaired_failure_probability)} | {metric_text(item.mean_absolute_risk_reduction)} |"
         )
 
@@ -273,15 +282,15 @@ def render_analytics_markdown(report: BenchmarkAnalyticsReport) -> str:
             "",
             "## Risk reduction by rule/failure mode",
             "",
-            "| Rule / failure mode | Experiments | Repairs | Success rate | Mean repaired risk | Mean risk reduction |",
-            "| --- | ---: | ---: | ---: | ---: | ---: |",
+            "| Rule / failure mode | Experiments | Repairs | Success rate | Mean repair baseline risk | Mean repaired risk | Mean risk reduction |",
+            "| --- | ---: | ---: | ---: | ---: | ---: | ---: |",
         ]
     )
     for item in report.metrics_by_rule:
         lines.append(
             f"| `{item.key}` | {item.experiment_count} | {item.repair_comparison_count} | "
-            f"{metric_text(item.repair_success_rate)} | {metric_text(item.mean_repaired_failure_probability)} | "
-            f"{metric_text(item.mean_absolute_risk_reduction)} |"
+            f"{metric_text(item.repair_success_rate)} | {metric_text(item.mean_repair_original_failure_probability)} | "
+            f"{metric_text(item.mean_repaired_failure_probability)} | {metric_text(item.mean_absolute_risk_reduction)} |"
         )
 
     lines.extend(
