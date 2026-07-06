@@ -1,0 +1,16 @@
+id: surface-landing-tilt-failure
+name: Surface Landing Tilt Failure
+family: surface_landing
+planned_path:
+  - t: 0.0
+    position: {x: 5.0, y: 0.0, z: 3.0}
+    attitude_deg: {x: 0.0, y: 0.0, z: 0.0}
+  - t: 5.0
+    position: {x: 4.0, y: 0.0, z: 2.4}
+    attitude_deg: {x: 5.0, y: 0.0, z: 0.0}
+  - t: 10.0
+    position: {x: 3.0, y: 0.0, z: 2.1}
+    attitude_deg: {x: 9.5, y: 0.0, z: 0.0}
+  - t: 15.0
+    position: {x: 2.2, y: 0.0, z: 1.8}
+    attitude_deg: {x: 10.0, y: 0.0, z: 0.0}
