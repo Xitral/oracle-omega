@@ -1,0 +1,16 @@
+id: surface-landing-speed-failure
+name: Surface Landing Speed Failure
+family: surface_landing
+planned_path:
+  - t: 0.0
+    position: {x: 5.0, y: 0.0, z: 3.0}
+    attitude_deg: {x: 0.0, y: 0.0, z: 0.0}
+  - t: 2.0
+    position: {x: 3.1, y: 0.0, z: 2.2}
+    attitude_deg: {x: 2.0, y: 0.0, z: 0.0}
+  - t: 4.0
+    position: {x: 2.2, y: 0.0, z: 1.9}
+    attitude_deg: {x: 3.0, y: 0.0, z: 0.0}
+  - t: 8.0
+    position: {x: 2.1, y: 0.0, z: 1.8}
+    attitude_deg: {x: 4.0, y: 0.0, z: 0.0}
