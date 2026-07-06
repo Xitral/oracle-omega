@@ -29,7 +29,8 @@ Each CI run performs:
 3. scenario suite evaluation
 4. robustness visualization bundle generation
 5. reproducible experiment generation
-6. release validation harness
+6. experiment index generation
+7. release validation harness
 
 ## Local release validation
 
@@ -48,6 +49,8 @@ The validation harness checks:
 - buffered repair risk reduction
 - reproducible experiment artifacts
 - scenario and rule catalog hashes
+- experiment index generation
+- benchmark summary generation
 - replay Theater static contract
 - robustness Theater static contract
 
