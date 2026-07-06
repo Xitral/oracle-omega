@@ -40,5 +40,8 @@ jobs:
       - name: Build reproducible experiment
         run: python -m src.oracle_omega.experiment_cli oracle/scenarios/example_corridor_speed_review.yaml --robustness --samples 20 --compare-repair --experiment-id ci-experiment --tag ci --tag release-gate
 
+      - name: Build experiment index
+        run: python -m src.oracle_omega.experiment_index_cli --root data/experiments --index-out data/experiments/index.json --summary-out data/experiments/benchmark-summary.md
+
       - name: Run release validation harness
         run: python -m src.oracle_omega.validate_release --out data/reports/release-validation.json
