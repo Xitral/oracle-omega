@@ -3,8 +3,9 @@ from __future__ import annotations
 import math
 from typing import Any
 
-from src.oracle_omega.core.models import Scenario, Vec3
-from src.oracle_omega.reviewer import applies_to_family
+from src.oracle_omega.core.models import EvidenceCard, RepairCandidate, Scenario, Vec3
+from src.oracle_omega.repair import failed_rule_ids, path_delta_score
+from src.oracle_omega.reviewer import applies_to_family, review
 from src.oracle_omega.spatial.checks import distance
 
 BUFFERED_REPAIR_STRATEGY = "uncertainty_buffered_repair_v1"
@@ -102,3 +103,71 @@ def retime_speed_with_buffer(scenario: Scenario, max_speed: float, sigma_t: floa
         required_dt = segment_distance / target if segment_distance > 0 else 0.001
         original_dt = max(current.t - previous.t, 0.001)
         current.t = previous.t + max(original_dt, required_dt + padding)
+
+
+def apply_buffered_repair(scenario: Scenario, rule_items: list[dict]) -> Scenario:
+    repaired = copy_for_buffered_repair(scenario)
+    rules = applicable_rules(rule_items, repaired)
+    sigma = lateral_sigma(scenario)
+
+    radius_rule = first_rule(rules, "radius_clearance")
+    if radius_rule is not None:
+        center = radius_rule["center"]
+        push_clearance_with_buffer(
+            repaired,
+            Vec3(x=float(center["x"]), y=float(center["y"]), z=float(center["z"])),
+            float(radius_rule["radius"]),
+            sigma,
+        )
+
+    corridor_rule = first_rule(rules, "corridor_limit")
+    if corridor_rule is not None:
+        clamp_corridor_with_buffer(repaired, float(corridor_rule["max_offset"]), sigma)
+
+    speed_rule = first_rule(rules, "speed_limit")
+    if speed_rule is not None:
+        retime_speed_with_buffer(repaired, float(speed_rule["max_speed"]), time_sigma(scenario))
+
+    return repaired
+
+
+def build_buffered_repair_candidate(
+    scenario: Scenario,
+    rule_items: list[dict],
+    original_evidence: EvidenceCard | None = None,
+) -> RepairCandidate:
+    original = original_evidence if original_evidence is not None else review(scenario, rule_items)
+    if original.failed_count == 0:
+        return RepairCandidate(
+            available=False,
+            strategy=BUFFERED_REPAIR_STRATEGY,
+            fixed_rules=[],
+            remaining_failures=[],
+            original_failed_count=0,
+            repaired_failed_count=0,
+            original_highest_severity=original.highest_severity,
+            repaired_highest_severity=original.highest_severity,
+            path_delta_score=0.0,
+            modified_frame_count=0,
+        )
+
+    repaired = apply_buffered_repair(scenario, rule_items)
+    repaired_evidence = review(repaired, rule_items)
+    original_failures = failed_rule_ids(original)
+    repaired_failures = failed_rule_ids(repaired_evidence)
+    delta, modified = path_delta_score(scenario, repaired)
+
+    return RepairCandidate(
+        available=True,
+        strategy=BUFFERED_REPAIR_STRATEGY,
+        fixed_rules=sorted(original_failures - repaired_failures),
+        remaining_failures=sorted(repaired_failures),
+        original_failed_count=original.failed_count,
+        repaired_failed_count=repaired_evidence.failed_count,
+        original_highest_severity=original.highest_severity,
+        repaired_highest_severity=repaired_evidence.highest_severity,
+        path_delta_score=delta,
+        modified_frame_count=modified,
+        repaired_scenario=repaired,
+        repaired_evidence=repaired_evidence,
+    )
