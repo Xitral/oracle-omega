@@ -1,0 +1,12 @@
+id: close-approach-corridor-drift
+name: Close Approach Corridor Drift
+family: close_approach
+planned_path:
+  - t: 0.0
+    position: {x: 10.0, y: 0.0, z: 0.0}
+  - t: 5.0
+    position: {x: 8.0, y: 1.5, z: 0.0}
+  - t: 10.0
+    position: {x: 6.0, y: 2.8, z: 0.0}
+  - t: 15.0
+    position: {x: 4.0, y: 3.1, z: 0.0}
