@@ -18,6 +18,19 @@ def applies_to_family(item: dict[str, Any], family: str) -> bool:
     return family in families
 
 
+def primary_failure(results: list[RuleResult]) -> RuleResult | None:
+    failures = [result for result in results if not result.passed]
+    if not failures:
+        return None
+    return min(
+        failures,
+        key=lambda result: (
+            float("inf") if result.violation_time is None else result.violation_time,
+            result.rule_id,
+        ),
+    )
+
+
 def review(scenario: Scenario, rule_items: list[dict[str, Any]]) -> EvidenceCard:
     results: list[RuleResult] = []
 
@@ -97,10 +110,17 @@ def review(scenario: Scenario, rule_items: list[dict[str, Any]]) -> EvidenceCard
             )
         )
 
-    passed = all(result.passed for result in results)
+    failure = primary_failure(results)
+    failed_count = sum(1 for result in results if not result.passed)
+    passed = failed_count == 0
     return EvidenceCard(
         scenario_id=scenario.id,
+        scenario_family=scenario.family,
         decision=Decision.ALLOW if passed else Decision.REQUIRE_REVIEW,
         results=results,
+        checked_count=len(results),
+        failed_count=failed_count,
+        primary_rule_id=None if failure is None else failure.rule_id,
+        primary_violation_time=None if failure is None else failure.violation_time,
         summary="All checks passed." if passed else "One or more checks require review.",
     )
