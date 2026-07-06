@@ -1,6 +1,6 @@
 id: example-path-review
 name: Review path demo
-family: example
+family: surface_landing
 parameters:
   description: A simple path that intersects the central volume and exceeds the demo tilt limit.
 planned_path:
