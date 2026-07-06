@@ -139,6 +139,14 @@
       .legend .critical::before { background: #ff6b6b; }
       .legend .primary::before { background: #ffb86b; }
     </style>
+    <script type="importmap">
+      {
+        "imports": {
+          "three": "https://unpkg.com/three@0.160.0/build/three.module.js",
+          "three/addons/": "https://unpkg.com/three@0.160.0/examples/jsm/"
+        }
+      }
+    </script>
   </head>
   <body>
     <main>
@@ -195,8 +203,8 @@
     </main>
 
     <script type="module">
-      import * as THREE from "https://unpkg.com/three@0.160.0/build/three.module.js";
-      import { OrbitControls } from "https://unpkg.com/three@0.160.0/examples/jsm/controls/OrbitControls.js";
+      import * as THREE from "three";
+      import { OrbitControls } from "three/addons/controls/OrbitControls.js";
 
       const defaultReplay = {
         scenario_id: "example-corridor-speed-review",
@@ -351,7 +359,8 @@
         addFrameMarkers(replay.frames);
         configureTimeline(replay.frames);
         updateDecisionPanel(replay);
-        focusFrame(replay.frames.findIndex((frame) => frame.is_primary_violation_frame) >= 0 ? replay.frames.findIndex((frame) => frame.is_primary_violation_frame) : 0);
+        const primaryIndex = replay.frames.findIndex((frame) => frame.is_primary_violation_frame);
+        focusFrame(primaryIndex >= 0 ? primaryIndex : 0);
       }
 
       function configureTimeline(frames) {
